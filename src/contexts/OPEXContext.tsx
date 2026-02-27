@@ -22,8 +22,22 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
   const [tipoFilter, setTipoFilter] = useState<'all' | 'Opex sem Folha' | 'Folha Total'>('all');
 
   const setRecords = useCallback((recs: OPEXRecord[]) => {
+    const dataStr = JSON.stringify(recs);
+    const sizeInMB = new Blob([dataStr]).size / (1024 * 1024);
+
+    if (sizeInMB > 8) {
+      throw new Error(`Dataset muito grande (${sizeInMB.toFixed(1)}MB). Máximo suportado: 8MB.`);
+    }
+
     setRecordsState(recs);
-    localStorage.setItem('opex-data', JSON.stringify(recs));
+    try {
+      localStorage.setItem('opex-data', dataStr);
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+        localStorage.removeItem('opex-data');
+        console.warn('localStorage quota exceeded, data kept in memory only.');
+      }
+    }
   }, []);
 
   const filteredRecords = tipoFilter === 'all' ? records : records.filter(r => r.tipo === tipoFilter);

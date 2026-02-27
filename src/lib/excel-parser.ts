@@ -1,10 +1,21 @@
 import * as XLSX from 'xlsx';
 import type { OPEXRecord } from '@/types/opex';
 
+const MAX_FILE_SIZE_MB = 10;
+const MAX_RECORDS = 100000;
+const MAX_STRING_LENGTH = 200;
+
+function sanitizeString(value: unknown, maxLength = MAX_STRING_LENGTH): string {
+  return String(value || '').trim().substring(0, maxLength);
+}
+
 export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    throw new Error(`Arquivo muito grande (máx ${MAX_FILE_SIZE_MB}MB).`);
+  }
+
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
-
   const sheetName = workbook.SheetNames.find(n => n.includes('Base Real') || n.includes('Orçado')) || workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   
@@ -37,14 +48,18 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
 
     records.push({
       base: base as 'ORÇ26' | 'REAL26',
-      areaGrupo1: String(row[5] || '').trim(),
-      diretoria: String(row[6] || '').trim(),
-      recurso: String(row[11] || '').trim(),
-      pacote: String(row[12] || '').trim(),
+      areaGrupo1: sanitizeString(row[5]),
+      diretoria: sanitizeString(row[6]),
+      recurso: sanitizeString(row[11]),
+      pacote: sanitizeString(row[12]),
       executado,
       mes,
-      tipo: String(row[34] || '').trim(),
+      tipo: sanitizeString(row[34]),
     });
+
+    if (records.length > MAX_RECORDS) {
+      throw new Error(`Limite de ${MAX_RECORDS.toLocaleString('pt-BR')} registros excedido.`);
+    }
   }
 
   if (records.length === 0) {
