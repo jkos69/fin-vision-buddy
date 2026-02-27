@@ -1,12 +1,25 @@
 export interface OPEXRecord {
   base: 'ORÇ26' | 'REAL26';
+  centroCusto: string;
+  descricaoCCusto: string;
   areaGrupo1: string;
   diretoria: string;
+  responsavelArea: string;
+  contaContabil: string;
+  descricaoConta: string;
   recurso: string;
   pacote: string;
+  debito: number;
+  credito: number;
   executado: number;
   mes: number;
   tipo: 'Opex sem Folha' | 'Folha Total' | string;
+  dataLcto: string;
+  numeroLote: string;
+  historico: string;
+  nomeFornecedor: string;
+  descPedido: string;
+  fornecedorGerencial: string;
 }
 
 export interface MonthlyData {

@@ -21,10 +21,7 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
   
   const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
   
-  // Header at row 4 (index 3 in 0-based), data starts at row 5 (index 4)
-  // But spec says header line 4 (0-indexed), data from line 5
-  // Let's find the header row by looking for "BASE" or similar
-  let headerIdx = 3; // default: row 5 (1-indexed) = index 4, header at index 3
+  let headerIdx = 3;
   for (let i = 0; i < Math.min(10, raw.length); i++) {
     const row = raw[i];
     if (row && row.some((cell: any) => String(cell).toUpperCase().includes('BASE'))) {
@@ -48,12 +45,25 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
 
     records.push({
       base: base as 'ORÇ26' | 'REAL26',
+      centroCusto: sanitizeString(row[1]),
+      descricaoCCusto: sanitizeString(row[2]),
       areaGrupo1: sanitizeString(row[5]),
       diretoria: sanitizeString(row[6]),
+      responsavelArea: sanitizeString(row[7]),
+      contaContabil: sanitizeString(row[8]),
+      descricaoConta: sanitizeString(row[9]),
       recurso: sanitizeString(row[11]),
       pacote: sanitizeString(row[12]),
+      debito: Number(row[13]) || 0,
+      credito: Number(row[14]) || 0,
       executado,
       mes,
+      dataLcto: sanitizeString(row[17]),
+      numeroLote: sanitizeString(row[18]),
+      historico: sanitizeString(row[20]),
+      nomeFornecedor: sanitizeString(row[24]),
+      descPedido: sanitizeString(row[28]),
+      fornecedorGerencial: sanitizeString(row[30]),
       tipo: sanitizeString(row[34]),
     });
 
