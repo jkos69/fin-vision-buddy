@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X } from 'lucide-react';
+import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2 } from 'lucide-react';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { getMesesComReal } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
@@ -17,7 +17,7 @@ const navItems = [
 ];
 
 function SidebarContent() {
-  const { hasData, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView } = useOPEX();
+  const { hasData, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords } = useOPEX();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const lastMonth = mesesComReal.length > 0 ? MESES_PT[mesesComReal[mesesComReal.length - 1] - 1] : '';
 
@@ -92,6 +92,16 @@ function SidebarContent() {
               {mesesComReal.map(m => MESES_PT[m - 1]).join(', ')}/26
             </p>
           </div>
+        )}
+
+        {hasData && (
+          <button
+            onClick={() => { if (window.confirm('Limpar todos os dados importados?')) clearRecords(); }}
+            className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors w-full text-left"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Limpar dados
+          </button>
         )}
       </div>
     </>
