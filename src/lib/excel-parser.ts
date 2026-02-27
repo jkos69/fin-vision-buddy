@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { OPEXRecord } from '@/types/opex';
 
-const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_MB = 50;
 const MAX_RECORDS = 100000;
 const MAX_STRING_LENGTH = 200;
 
