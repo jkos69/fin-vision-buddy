@@ -9,6 +9,29 @@ function sanitizeString(value: unknown, maxLength = MAX_STRING_LENGTH): string {
   return String(value || '').trim().substring(0, maxLength);
 }
 
+function parseNumber(value: unknown): number {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return isNaN(value) ? 0 : value;
+  
+  let str = String(value).trim();
+  // Remove currency symbols and spaces
+  str = str.replace(/[R$\s]/g, '');
+  
+  const lastComma = str.lastIndexOf(',');
+  const lastDot = str.lastIndexOf('.');
+  
+  if (lastComma > lastDot) {
+    // Brazilian format: 1.234,56
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else {
+    // US format or no decimal: 1,234.56
+    str = str.replace(/,/g, '');
+  }
+  
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
   if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
     throw new Error(`Arquivo muito grande (máx ${MAX_FILE_SIZE_MB}MB).`);
@@ -29,6 +52,9 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
       break;
     }
   }
+  console.log('[OPEX Parser] Sheet:', sheetName, '| Header row:', headerIdx, '| Headers:', raw[headerIdx]?.slice(0, 20));
+  console.log('[OPEX Parser] First data row:', raw[headerIdx + 1]?.slice(0, 20));
+  console.log('[OPEX Parser] Total rows in sheet:', raw.length);
 
   const records: OPEXRecord[] = [];
   
@@ -39,8 +65,8 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
     const base = String(row[0] || '').trim().toUpperCase();
     if (base !== 'ORÇ26' && base !== 'REAL26') continue;
 
-    const executado = Number(row[15]) || 0;
-    const mes = Number(row[16]) || 0;
+    const executado = parseNumber(row[15]);
+    const mes = parseNumber(row[16]);
     if (mes < 1 || mes > 12) continue;
 
     records.push({
@@ -54,8 +80,8 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
       descricaoConta: sanitizeString(row[9]),
       recurso: sanitizeString(row[11]),
       pacote: sanitizeString(row[12]),
-      debito: Number(row[13]) || 0,
-      credito: Number(row[14]) || 0,
+      debito: parseNumber(row[13]),
+      credito: parseNumber(row[14]),
       executado,
       mes,
       dataLcto: sanitizeString(row[17]),
