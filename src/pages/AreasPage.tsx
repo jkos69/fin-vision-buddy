@@ -1,53 +1,89 @@
 import { useState } from 'react';
 import { useOPEX } from '@/contexts/OPEXContext';
-import { groupBy, getMesesComReal, formatCurrency, formatPercent, getSemaforo } from '@/lib/opex-utils';
+import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
 import { DIRETORIAS } from '@/types/opex';
-import { Building2, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Building2, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload) return null;
-  return (
-    <div className="glass-card p-3 text-xs space-y-1">
-      <p className="font-semibold">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }}>{p.name}: {formatCurrency(p.value)}</p>
-      ))}
-    </div>
-  );
-};
+import { SortableTable, type ColumnDef } from '@/components/SortableTable';
+import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';
 
 function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
   const colors = { green: 'bg-success', yellow: 'bg-warning', red: 'bg-destructive' };
   return <span className={`inline-block h-2.5 w-2.5 rounded-full ${colors[status]}`} />;
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload) return null;
+  const orc = payload.find((p: any) => p.name === 'Orçado');
+  const real = payload.find((p: any) => p.name === 'Realizado');
+  const variacao = orc && real ? real.value - orc.value : null;
+  return (
+    <div className="glass-card p-3 text-xs space-y-1">
+      <p className="font-semibold">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} style={{ color: p.color }}>{p.name}: {formatCurrency(p.value)}</p>
+      ))}
+      {variacao !== null && (
+        <p className={variacao > 0 ? 'text-destructive' : 'text-success'}>Variação: {formatCurrency(variacao)}</p>
+      )}
+    </div>
+  );
+};
+
 export default function AreasPage() {
-  const { filteredRecords } = useOPEX();
+  const { filteredRecords, periodoView } = useOPEX();
   const [selectedDiretoria, setSelectedDiretoria] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<'nome' | 'orcado' | 'variacao'>('orcado');
+  const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
 
   const mesesComReal = getMesesComReal(filteredRecords);
-  
-  // Diretoria overview
-  const diretoriaData = groupBy(filteredRecords, 'diretoria', mesesComReal);
+  const diretoriaData = groupBy(filteredRecords, 'diretoria', mesesComReal, periodoView);
 
-  // Áreas for selected Diretoria
   const areaRecords = selectedDiretoria ? filteredRecords.filter(r => r.diretoria === selectedDiretoria) : [];
-  const areaData = selectedDiretoria ? groupBy(areaRecords, 'areaGrupo1', mesesComReal) : [];
-  const sortedAreas = [...areaData].sort((a, b) => {
-    if (sortKey === 'nome') return a.nome.localeCompare(b.nome);
-    if (sortKey === 'variacao') return Math.abs(b.variacaoPercent) - Math.abs(a.variacaoPercent);
-    return b.orcado - a.orcado;
-  });
+  const areaData = selectedDiretoria ? groupBy(areaRecords, 'areaGrupo1', mesesComReal, periodoView) : [];
 
-  // Drill-down: Pacotes + Top 5 for selected Area
   const drillRecords = selectedArea ? areaRecords.filter(r => r.areaGrupo1 === selectedArea) : [];
-  const pacoteData = selectedArea ? groupBy(drillRecords, 'pacote', mesesComReal).filter(d => d.orcado > 0 || d.realizado > 0) : [];
-  const recursoData = selectedArea ? groupBy(drillRecords, 'recurso', mesesComReal).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const pacoteData = selectedArea ? groupBy(drillRecords, 'pacote', mesesComReal, periodoView).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const recursoData = selectedArea ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView).filter(d => d.orcado > 0 || d.realizado > 0) : [];
   const top5 = recursoData.slice(0, 5);
   const totalArea = recursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
+
+  const isAnual = periodoView === 'anual';
+  const orcLabel = isAnual ? 'Orçado Anual' : 'Orçado YTD';
+  const realLabel = isAnual ? 'Realizado Acum.' : 'Realizado YTD';
+
+  const areaColumns: ColumnDef[] = [
+    { key: 'nome', label: 'Área', align: 'left' },
+    { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
+    { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
+    { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
+    { key: 'variacaoPercent', label: 'Var %', align: 'right', format: 'percent' },
+    { key: 'semaforo', label: 'Status', align: 'center', sortable: false, render: (v) => <SemaforoIcon status={v} /> },
+    { key: '_exec', label: 'Execução', align: 'right', sortable: false, render: (_, row) => {
+      const pct = row.orcado ? (row.realizado / row.orcado) * 100 : 0;
+      return (
+        <div className="flex items-center gap-2 justify-end">
+          <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+            <div className={`h-full rounded-full ${row.semaforo === 'green' ? 'bg-success' : row.semaforo === 'yellow' ? 'bg-warning' : 'bg-destructive'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+          </div>
+          <span className="text-xs text-muted-foreground font-mono w-10 text-right">{row.orcado ? `${pct.toFixed(0)}%` : '—'}</span>
+        </div>
+      );
+    }},
+  ];
+
+  const recursoColumns: ColumnDef[] = [
+    { key: 'nome', label: 'Recurso', align: 'left' },
+    { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
+    { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
+    { key: 'variacao', label: 'Variação', align: 'right', format: 'currency' },
+    { key: 'variacaoPercent', label: 'Var %', align: 'right', format: 'percent' },
+  ];
+
+  const openDetail = (recursoNome: string) => {
+    const recs = drillRecords.filter(r => r.recurso === recursoNome);
+    setDetailModal({ open: true, records: recs, title: `${selectedArea} → ${recursoNome}` });
+  };
 
   return (
     <div className="space-y-6">
@@ -62,13 +98,13 @@ export default function AreasPage() {
         {selectedDiretoria && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <button onClick={() => setSelectedArea(null)} className="text-primary hover:underline">{selectedDiretoria}</button>
+            <button onClick={() => setSelectedArea(null)} className="text-primary hover:underline">Diretoria: {selectedDiretoria}</button>
           </>
         )}
         {selectedArea && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-foreground">{selectedArea}</span>
+            <span className="text-foreground">Área: {selectedArea}</span>
           </>
         )}
       </div>
@@ -77,11 +113,7 @@ export default function AreasPage() {
       {!selectedDiretoria && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {diretoriaData.map(d => (
-            <button
-              key={d.nome}
-              onClick={() => setSelectedDiretoria(d.nome)}
-              className="glass-card p-5 text-left hover:border-primary/50 transition-all group"
-            >
+            <button key={d.nome} onClick={() => setSelectedDiretoria(d.nome)} className="glass-card p-5 text-left hover:border-primary/50 transition-all group">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-primary" />
@@ -90,19 +122,15 @@ export default function AreasPage() {
                 <SemaforoIcon status={d.semaforo} />
               </div>
               <div className="space-y-1 text-xs">
-                <div className="flex justify-between"><span className="text-muted-foreground">Orçado YTD</span><span className="font-mono">{formatCurrency(d.orcado)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Realizado YTD</span><span className="font-mono">{formatCurrency(d.realizado)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">{orcLabel}</span><span className="font-mono">{formatCurrency(d.orcado)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">{realLabel}</span><span className="font-mono">{formatCurrency(d.realizado)}</span></div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Variação</span>
                   <span className={`font-mono font-medium ${d.variacao > 0 ? 'text-destructive' : 'text-success'}`}>{formatPercent(d.variacaoPercent)}</span>
                 </div>
               </div>
-              {/* Progress bar */}
               <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${d.semaforo === 'green' ? 'bg-success' : d.semaforo === 'yellow' ? 'bg-warning' : 'bg-destructive'}`}
-                  style={{ width: `${Math.min((d.realizado / (d.orcado || 1)) * 100, 100)}%` }}
-                />
+                <div className={`h-full rounded-full transition-all ${d.semaforo === 'green' ? 'bg-success' : d.semaforo === 'yellow' ? 'bg-warning' : 'bg-destructive'}`} style={{ width: `${Math.min((d.realizado / (d.orcado || 1)) * 100, 100)}%` }} />
               </div>
             </button>
           ))}
@@ -111,64 +139,17 @@ export default function AreasPage() {
 
       {/* Level 2: Áreas table */}
       {selectedDiretoria && !selectedArea && (
-        <div className="data-grid">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer" onClick={() => setSortKey('nome')}>
-                    <span className="flex items-center gap-1">Área <ArrowUpDown className="h-3 w-3" /></span>
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground cursor-pointer" onClick={() => setSortKey('orcado')}>Orçado YTD</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Realizado YTD</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground cursor-pointer" onClick={() => setSortKey('variacao')}>Variação</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Var %</th>
-                  <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Execução</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedAreas.map(a => (
-                  <tr
-                    key={a.nome}
-                    className="border-b border-border/50 hover:bg-accent/50 cursor-pointer transition-colors"
-                    onClick={() => setSelectedArea(a.nome)}
-                  >
-                    <td className="px-4 py-3 font-medium">{a.nome}</td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">{formatCurrency(a.orcado)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">{formatCurrency(a.realizado)}</td>
-                    <td className={`px-4 py-3 text-right font-mono text-xs font-medium ${a.variacao > 0 ? 'text-destructive' : 'text-success'}`}>
-                      {formatCurrency(a.variacao)}
-                    </td>
-                    <td className={`px-4 py-3 text-right font-mono text-xs font-medium ${a.variacao > 0 ? 'text-destructive' : 'text-success'}`}>
-                      {formatPercent(a.variacaoPercent)}
-                    </td>
-                    <td className="px-4 py-3 text-center"><SemaforoIcon status={a.semaforo} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2 justify-end">
-                        <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${a.semaforo === 'green' ? 'bg-success' : a.semaforo === 'yellow' ? 'bg-warning' : 'bg-destructive'}`}
-                            style={{ width: `${Math.min((a.realizado / (a.orcado || 1)) * 100, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground font-mono w-10 text-right">
-                          {a.orcado ? `${((a.realizado / a.orcado) * 100).toFixed(0)}%` : '—'}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <SortableTable
+          columns={areaColumns}
+          data={areaData}
+          onRowClick={(row) => setSelectedArea(row.nome)}
+          exportFilename={`areas-${selectedDiretoria}.csv`}
+        />
       )}
 
       {/* Level 3: Drill-down */}
       {selectedArea && (
         <div className="space-y-6">
-          {/* Pacotes chart */}
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold mb-4">Composição por Pacote — {selectedArea}</h3>
             <ResponsiveContainer width="100%" height={Math.max(200, pacoteData.length * 40)}>
@@ -183,68 +164,44 @@ export default function AreasPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Top 5 */}
+          {/* Top 5 as sortable table */}
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold mb-4">Top 5 Maiores Custos (por Recurso)</h3>
-            <div className="space-y-3">
-              {top5.map((r, i) => {
-                const value = r.realizado || r.orcado;
-                const pct = totalArea > 0 ? (value / totalArea) * 100 : 0;
-                return (
-                  <div key={r.nome} className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-primary w-5 text-right">#{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium truncate">{r.nome}</span>
-                        <span className="text-xs font-mono ml-2">{formatCurrency(value)} ({pct.toFixed(1)}%)</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                    {r.realizado > 0 && (
-                      <span className={`text-xs font-mono ${r.variacao > 0 ? 'text-destructive' : 'text-success'}`}>
-                        {formatPercent(r.variacaoPercent)}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <SortableTable
+              columns={[
+                { key: '_rank', label: '#', align: 'center', sortable: false, render: (_, __, i) => <span className="text-primary font-bold">#{i+1}</span> },
+                { key: 'nome', label: 'Recurso', align: 'left' },
+                { key: '_valor', label: 'Valor', align: 'right', format: 'currency', render: (_, row) => formatCurrency(row.realizado || row.orcado) },
+                { key: '_pct', label: '% Total', align: 'right', render: (_, row) => `${totalArea > 0 ? ((row.realizado || row.orcado) / totalArea * 100).toFixed(1) : 0}%` },
+                { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
+                { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
+                { key: 'variacao', label: 'Variação', align: 'right', format: 'currency' },
+              ]}
+              data={top5}
+              highlightTop={5}
+              onRowClick={(row) => openDetail(row.nome)}
+            />
           </div>
 
           {/* Full resource table */}
-          <div className="data-grid">
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold">Detalhamento por Recurso</h3>
-            </div>
-            <div className="overflow-x-auto max-h-96">
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-card">
-                  <tr className="border-b border-border">
-                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Recurso</th>
-                    <th className="px-4 py-2 text-right font-medium text-muted-foreground">Orçado</th>
-                    <th className="px-4 py-2 text-right font-medium text-muted-foreground">Realizado</th>
-                    <th className="px-4 py-2 text-right font-medium text-muted-foreground">Variação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recursoData.map(r => (
-                    <tr key={r.nome} className="border-b border-border/30 hover:bg-accent/30">
-                      <td className="px-4 py-2">{r.nome}</td>
-                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(r.orcado)}</td>
-                      <td className="px-4 py-2 text-right font-mono">{formatCurrency(r.realizado)}</td>
-                      <td className={`px-4 py-2 text-right font-mono ${r.variacao > 0 ? 'text-destructive' : 'text-success'}`}>
-                        {formatCurrency(r.variacao)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div>
+            <div className="px-1 py-2"><h3 className="text-sm font-semibold">Detalhamento por Recurso</h3></div>
+            <SortableTable
+              columns={recursoColumns}
+              data={recursoData}
+              onRowClick={(row) => openDetail(row.nome)}
+              exportFilename={`recursos-${selectedArea}.csv`}
+            />
           </div>
         </div>
       )}
+
+      <ExpenseDetailModal
+        open={detailModal.open}
+        onOpenChange={(o) => setDetailModal(prev => ({ ...prev, open: o }))}
+        records={detailModal.records}
+        title={detailModal.title}
+      />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import type { OPEXRecord } from '@/types/opex';
 
+type PeriodoView = 'ytd' | 'anual';
+
 interface OPEXContextType {
   records: OPEXRecord[];
   setRecords: (records: OPEXRecord[]) => void;
@@ -8,6 +10,8 @@ interface OPEXContextType {
   tipoFilter: 'all' | 'Opex sem Folha' | 'Folha Total';
   setTipoFilter: (f: 'all' | 'Opex sem Folha' | 'Folha Total') => void;
   filteredRecords: OPEXRecord[];
+  periodoView: PeriodoView;
+  setPeriodoView: (p: PeriodoView) => void;
 }
 
 const OPEXContext = createContext<OPEXContextType | null>(null);
@@ -20,6 +24,7 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
     } catch { return []; }
   });
   const [tipoFilter, setTipoFilter] = useState<'all' | 'Opex sem Folha' | 'Folha Total'>('all');
+  const [periodoView, setPeriodoView] = useState<PeriodoView>('ytd');
 
   const setRecords = useCallback((recs: OPEXRecord[]) => {
     const dataStr = JSON.stringify(recs);
@@ -43,7 +48,7 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
   const filteredRecords = tipoFilter === 'all' ? records : records.filter(r => r.tipo === tipoFilter);
 
   return (
-    <OPEXContext.Provider value={{ records, setRecords, hasData: records.length > 0, tipoFilter, setTipoFilter, filteredRecords }}>
+    <OPEXContext.Provider value={{ records, setRecords, hasData: records.length > 0, tipoFilter, setTipoFilter, filteredRecords, periodoView, setPeriodoView }}>
       {children}
     </OPEXContext.Provider>
   );
