@@ -30,8 +30,8 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
     const dataStr = JSON.stringify(recs);
     const sizeInMB = new Blob([dataStr]).size / (1024 * 1024);
 
-    if (sizeInMB > 8) {
-      throw new Error(`Dataset muito grande (${sizeInMB.toFixed(1)}MB). Máximo suportado: 8MB.`);
+    if (sizeInMB > 50) {
+      throw new Error(`Dataset muito grande (${sizeInMB.toFixed(1)}MB). Máximo suportado: 50MB.`);
     }
 
     setRecordsState(recs);
