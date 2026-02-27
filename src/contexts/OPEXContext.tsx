@@ -6,6 +6,7 @@ type PeriodoView = 'ytd' | 'anual';
 interface OPEXContextType {
   records: OPEXRecord[];
   setRecords: (records: OPEXRecord[]) => void;
+  clearRecords: () => void;
   hasData: boolean;
   tipoFilter: 'all' | 'Opex sem Folha' | 'Folha Total';
   setTipoFilter: (f: 'all' | 'Opex sem Folha' | 'Folha Total') => void;
@@ -45,10 +46,15 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const clearRecords = useCallback(() => {
+    setRecordsState([]);
+    localStorage.removeItem('opex-data');
+  }, []);
+
   const filteredRecords = tipoFilter === 'all' ? records : records.filter(r => r.tipo === tipoFilter);
 
   return (
-    <OPEXContext.Provider value={{ records, setRecords, hasData: records.length > 0, tipoFilter, setTipoFilter, filteredRecords, periodoView, setPeriodoView }}>
+    <OPEXContext.Provider value={{ records, setRecords, clearRecords, hasData: records.length > 0, tipoFilter, setTipoFilter, filteredRecords, periodoView, setPeriodoView }}>
       {children}
     </OPEXContext.Provider>
   );
