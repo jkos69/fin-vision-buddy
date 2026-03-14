@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
