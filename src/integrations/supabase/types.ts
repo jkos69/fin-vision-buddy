@@ -14,7 +14,158 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      access_passwords: {
+        Row: {
+          area: string | null
+          created_at: string | null
+          diretoria: string | null
+          id: string
+          nome_display: string
+          responsavel: string | null
+          senha: string
+          tipo: string
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string | null
+          diretoria?: string | null
+          id?: string
+          nome_display: string
+          responsavel?: string | null
+          senha: string
+          tipo: string
+        }
+        Update: {
+          area?: string | null
+          created_at?: string | null
+          diretoria?: string | null
+          id?: string
+          nome_display?: string
+          responsavel?: string | null
+          senha?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      opex_records: {
+        Row: {
+          area_grupo1: string
+          base: string
+          centro_custo: string | null
+          conta_contabil: string | null
+          credito: number | null
+          data_lcto: string | null
+          debito: number | null
+          desc_pedido: string | null
+          descricao_ccusto: string | null
+          descricao_conta: string | null
+          diretoria: string
+          executado: number | null
+          fornecedor_gerencial: string | null
+          historico: string | null
+          id: number
+          mes: number
+          nome_fornecedor: string | null
+          numero_lote: string | null
+          pacote: string
+          recurso: string
+          responsavel_area: string | null
+          tipo: string | null
+          upload_id: string | null
+        }
+        Insert: {
+          area_grupo1: string
+          base: string
+          centro_custo?: string | null
+          conta_contabil?: string | null
+          credito?: number | null
+          data_lcto?: string | null
+          debito?: number | null
+          desc_pedido?: string | null
+          descricao_ccusto?: string | null
+          descricao_conta?: string | null
+          diretoria: string
+          executado?: number | null
+          fornecedor_gerencial?: string | null
+          historico?: string | null
+          id?: number
+          mes: number
+          nome_fornecedor?: string | null
+          numero_lote?: string | null
+          pacote: string
+          recurso: string
+          responsavel_area?: string | null
+          tipo?: string | null
+          upload_id?: string | null
+        }
+        Update: {
+          area_grupo1?: string
+          base?: string
+          centro_custo?: string | null
+          conta_contabil?: string | null
+          credito?: number | null
+          data_lcto?: string | null
+          debito?: number | null
+          desc_pedido?: string | null
+          descricao_ccusto?: string | null
+          descricao_conta?: string | null
+          diretoria?: string
+          executado?: number | null
+          fornecedor_gerencial?: string | null
+          historico?: string | null
+          id?: number
+          mes?: number
+          nome_fornecedor?: string | null
+          numero_lote?: string | null
+          pacote?: string
+          recurso?: string
+          responsavel_area?: string | null
+          tipo?: string | null
+          upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opex_records_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "opex_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opex_uploads: {
+        Row: {
+          created_at: string | null
+          filename: string
+          id: string
+          meses_real: number[] | null
+          total_orcado: number | null
+          total_realizado: number | null
+          total_records: number
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string | null
+          filename: string
+          id?: string
+          meses_real?: number[] | null
+          total_orcado?: number | null
+          total_realizado?: number | null
+          total_records: number
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string | null
+          filename?: string
+          id?: string
+          meses_real?: number[] | null
+          total_orcado?: number | null
+          total_realizado?: number | null
+          total_records?: number
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
