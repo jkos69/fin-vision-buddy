@@ -26,20 +26,22 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function PacotesPage() {
-  const { filteredRecords, periodoView } = useOPEX();
+  const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const [selectedPacote, setSelectedPacote] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
   const mesesComReal = getMesesComReal(filteredRecords);
 
-  const pacoteOverview = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView).filter(p => p.orcado > 0 || p.realizado > 0);
+  const pacoteOverview = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(p => p.orcado > 0 || p.realizado > 0);
+
+  const isMensal = periodoView === 'mensal' && mesSelecionado;
   const isAnual = periodoView === 'anual';
-  const orcLabel = isAnual ? 'Orçado Anual' : 'Orçado YTD';
-  const realLabel = isAnual ? 'Realizado Acum.' : 'Realizado YTD';
+  const orcLabel = isAnual ? 'Orçado Anual' : isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
+  const realLabel = isAnual ? 'Realizado Acum.' : isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
 
   const drillRecords = selectedPacote ? filteredRecords.filter(r => r.pacote === selectedPacote) : [];
-  const areaBreakdown = selectedPacote ? groupBy(drillRecords, 'areaGrupo1', mesesComReal, periodoView).filter(d => d.orcado > 0 || d.realizado > 0) : [];
-  const recursoBreakdown = selectedPacote ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const areaBreakdown = selectedPacote ? groupBy(drillRecords, 'areaGrupo1', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const recursoBreakdown = selectedPacote ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
 
   const monthlyEvolution = selectedPacote ? Array.from({ length: 12 }, (_, i) => {
     const mes = i + 1;

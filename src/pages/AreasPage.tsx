@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
-import { DIRETORIAS } from '@/types/opex';
+import { MESES_PT } from '@/types/opex';
 import { Building2, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
@@ -31,26 +31,27 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function AreasPage() {
-  const { filteredRecords, periodoView } = useOPEX();
+  const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const [selectedDiretoria, setSelectedDiretoria] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
 
   const mesesComReal = getMesesComReal(filteredRecords);
-  const diretoriaData = groupBy(filteredRecords, 'diretoria', mesesComReal, periodoView);
+  const diretoriaData = groupBy(filteredRecords, 'diretoria', mesesComReal, periodoView, mesSelecionado);
 
   const areaRecords = selectedDiretoria ? filteredRecords.filter(r => r.diretoria === selectedDiretoria) : [];
-  const areaData = selectedDiretoria ? groupBy(areaRecords, 'areaGrupo1', mesesComReal, periodoView) : [];
+  const areaData = selectedDiretoria ? groupBy(areaRecords, 'areaGrupo1', mesesComReal, periodoView, mesSelecionado) : [];
 
   const drillRecords = selectedArea ? areaRecords.filter(r => r.areaGrupo1 === selectedArea) : [];
-  const pacoteData = selectedArea ? groupBy(drillRecords, 'pacote', mesesComReal, periodoView).filter(d => d.orcado > 0 || d.realizado > 0) : [];
-  const recursoData = selectedArea ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const pacoteData = selectedArea ? groupBy(drillRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const recursoData = selectedArea ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
   const top5 = recursoData.slice(0, 5);
   const totalArea = recursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
 
+  const isMensal = periodoView === 'mensal' && mesSelecionado;
   const isAnual = periodoView === 'anual';
-  const orcLabel = isAnual ? 'Orçado Anual' : 'Orçado YTD';
-  const realLabel = isAnual ? 'Realizado Acum.' : 'Realizado YTD';
+  const orcLabel = isAnual ? 'Orçado Anual' : isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
+  const realLabel = isAnual ? 'Realizado Acum.' : isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
 
   const areaColumns: ColumnDef[] = [
     { key: 'nome', label: 'Área', align: 'left' },

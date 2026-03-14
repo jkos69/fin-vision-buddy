@@ -20,26 +20,35 @@ export function getMesesComReal(records: OPEXRecord[]): number[] {
   return Array.from(meses).sort((a, b) => a - b);
 }
 
-export function getSummary(records: OPEXRecord[], periodoView: 'ytd' | 'anual' = 'ytd'): SummaryData {
+export function getSummary(
+  records: OPEXRecord[],
+  periodoView: 'ytd' | 'anual' | 'mensal' = 'ytd',
+  mesSelecionado: number | null = null
+): SummaryData {
   const mesesComReal = getMesesComReal(records);
   const orcadoAnual = records.filter(r => r.base === 'ORÇ26').reduce((s, r) => s + r.executado, 0);
-  const orcadoYTD = records.filter(r => r.base === 'ORÇ26' && mesesComReal.includes(r.mes)).reduce((s, r) => s + r.executado, 0);
-  const realizadoYTD = records.filter(r => r.base === 'REAL26').reduce((s, r) => s + r.executado, 0);
 
-  let variacao: number;
-  let variacaoPercent: number;
+  let orcadoRef: number;
+  let realizadoRef: number;
 
-  if (periodoView === 'anual') {
-    variacao = realizadoYTD - orcadoAnual;
-    variacaoPercent = orcadoAnual !== 0 ? (variacao / orcadoAnual) * 100 : 0;
+  if (periodoView === 'mensal' && mesSelecionado) {
+    orcadoRef = records.filter(r => r.base === 'ORÇ26' && r.mes === mesSelecionado).reduce((s, r) => s + r.executado, 0);
+    realizadoRef = records.filter(r => r.base === 'REAL26' && r.mes === mesSelecionado).reduce((s, r) => s + r.executado, 0);
+  } else if (periodoView === 'anual') {
+    orcadoRef = orcadoAnual;
+    realizadoRef = records.filter(r => r.base === 'REAL26').reduce((s, r) => s + r.executado, 0);
   } else {
-    variacao = realizadoYTD - orcadoYTD;
-    variacaoPercent = orcadoYTD !== 0 ? (variacao / orcadoYTD) * 100 : 0;
+    // YTD
+    orcadoRef = records.filter(r => r.base === 'ORÇ26' && mesesComReal.includes(r.mes)).reduce((s, r) => s + r.executado, 0);
+    realizadoRef = records.filter(r => r.base === 'REAL26').reduce((s, r) => s + r.executado, 0);
   }
 
-  const projecaoAnual = mesesComReal.length > 0 ? (realizadoYTD / mesesComReal.length) * 12 : 0;
+  const variacao = realizadoRef - orcadoRef;
+  const variacaoPercent = orcadoRef !== 0 ? (variacao / orcadoRef) * 100 : 0;
+  const realizadoTotal = records.filter(r => r.base === 'REAL26').reduce((s, r) => s + r.executado, 0);
+  const projecaoAnual = mesesComReal.length > 0 ? (realizadoTotal / mesesComReal.length) * 12 : 0;
 
-  return { orcadoYTD, realizadoYTD, variacao, variacaoPercent, orcadoAnual, mesesComReal, projecaoAnual };
+  return { orcadoYTD: orcadoRef, realizadoYTD: realizadoRef, variacao, variacaoPercent, orcadoAnual, mesesComReal, projecaoAnual };
 }
 
 export function getMonthlyData(records: OPEXRecord[]): MonthlyData[] {
@@ -71,7 +80,13 @@ export function getSemaforoAnual(realizado: number, orcadoAnual: number, mesesCo
   return 'green';
 }
 
-export function groupBy(records: OPEXRecord[], field: keyof OPEXRecord, mesesComReal: number[], periodoView: 'ytd' | 'anual' = 'ytd'): GroupedData[] {
+export function groupBy(
+  records: OPEXRecord[],
+  field: keyof OPEXRecord,
+  mesesComReal: number[],
+  periodoView: 'ytd' | 'anual' | 'mensal' = 'ytd',
+  mesSelecionado: number | null = null
+): GroupedData[] {
   const groups = new Map<string, { orcado: number; orcadoAnual: number; realizado: number }>();
   records.forEach(r => {
     const key = String(r[field]);
@@ -79,9 +94,19 @@ export function groupBy(records: OPEXRecord[], field: keyof OPEXRecord, mesesCom
     const g = groups.get(key)!;
     if (r.base === 'ORÇ26') {
       g.orcadoAnual += r.executado;
-      if (mesesComReal.includes(r.mes)) g.orcado += r.executado;
+      if (periodoView === 'mensal' && mesSelecionado) {
+        if (r.mes === mesSelecionado) g.orcado += r.executado;
+      } else if (mesesComReal.includes(r.mes)) {
+        g.orcado += r.executado;
+      }
     }
-    if (r.base === 'REAL26') g.realizado += r.executado;
+    if (r.base === 'REAL26') {
+      if (periodoView === 'mensal' && mesSelecionado) {
+        if (r.mes === mesSelecionado) g.realizado += r.executado;
+      } else {
+        g.realizado += r.executado;
+      }
+    }
   });
 
   return Array.from(groups.entries()).map(([nome, { orcado, orcadoAnual, realizado }]) => {
