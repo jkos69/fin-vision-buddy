@@ -54,11 +54,11 @@ export default function ComparacaoPage() {
   const isSameSelection = selA.mes === selB.mes && selA.base === selB.base;
 
   // Build options: "Jan Orçado", "Jan Realizado" (only if has real), etc.
-  const compOptions = MESES_PT.flatMap((nome, i) => {
+  const compOptions: { mes: number; base: string; label: string }[] = MESES_PT.flatMap((nome, i) => {
     const mes = i + 1;
-    const opts = [{ mes, base: 'ORÇ26' as const, label: `${nome} Orçado` }];
+    const opts: { mes: number; base: string; label: string }[] = [{ mes, base: 'ORÇ26', label: `${nome} Orçado` }];
     if (mesesComReal.includes(mes)) {
-      opts.push({ mes, base: 'REAL26' as const, label: `${nome} Realizado` });
+      opts.push({ mes, base: 'REAL26', label: `${nome} Realizado` });
     }
     return opts;
   });
