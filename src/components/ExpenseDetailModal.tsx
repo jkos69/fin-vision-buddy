@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { formatCurrency } from '@/lib/opex-utils';
 import { MESES_PT, type OPEXRecord } from '@/types/opex';
+import { useOPEX } from '@/contexts/OPEXContext';
 
 interface ExpenseDetailModalProps {
   open: boolean;
@@ -12,7 +13,17 @@ interface ExpenseDetailModalProps {
 }
 
 export function ExpenseDetailModal({ open, onOpenChange, records, title }: ExpenseDetailModalProps) {
+  const { periodoView, mesSelecionado } = useOPEX();
   const [mesFilter, setMesFilter] = useState<number | null>(null);
+
+  // When in mensal mode, default filter to selected month
+  useEffect(() => {
+    if (open && periodoView === 'mensal' && mesSelecionado) {
+      setMesFilter(mesSelecionado);
+    } else if (open) {
+      setMesFilter(null);
+    }
+  }, [open, periodoView, mesSelecionado]);
 
   const mesesPresentes = useMemo(() => {
     const s = new Set<number>();

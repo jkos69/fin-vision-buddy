@@ -19,10 +19,19 @@ export function FileUpload() {
     setStatus('loading');
     setMessage('Processando planilha...');
     try {
+      // Limpar dados antigos antes de carregar novos
+      localStorage.removeItem('opex-data');
+
       const records = await parseExcelFile(file);
+
+      const mesesReal = [...new Set(records.filter(r => r.base === 'REAL26').map(r => r.mes))].sort((a, b) => a - b);
+      console.log('[Upload] Parsed records:', records.length, '| REAL months:', mesesReal);
+
       setRecords(records);
       setStatus('success');
-      setMessage(`${records.length.toLocaleString('pt-BR')} registros importados com sucesso!`);
+
+      const mesesStr = mesesReal.map(m => ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m-1]).join(', ');
+      setMessage(`${records.length.toLocaleString('pt-BR')} registros importados! Meses reais: ${mesesStr || 'nenhum'}`);
     } catch (e: any) {
       setStatus('error');
       setMessage(e.message || 'Erro ao processar arquivo');

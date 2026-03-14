@@ -51,7 +51,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function Dashboard() {
-  const { filteredRecords, hasData, periodoView } = useOPEX();
+  const { filteredRecords, hasData, periodoView, mesSelecionado } = useOPEX();
   const navigate = useNavigate();
 
   if (!hasData) {
@@ -66,9 +66,22 @@ export default function Dashboard() {
     );
   }
 
-  const summary = getSummary(filteredRecords, periodoView);
+  const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
   const monthlyData = getMonthlyData(filteredRecords);
   const mesesComReal = getMesesComReal(filteredRecords);
+
+  const isMensal = periodoView === 'mensal' && mesSelecionado;
+  const isAnual = periodoView === 'anual';
+
+  const orcLabel = isAnual ? 'Orçado Anual'
+    : isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}`
+    : 'Orçado YTD';
+  const realLabel = isAnual ? 'Realizado Acum.'
+    : isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}`
+    : 'Realizado YTD';
+  const periodoLabel = isAnual ? 'Orçado Anual'
+    : isMensal ? `Mês: ${MESES_PT[mesSelecionado! - 1]}`
+    : 'YTD';
 
   // Donut: always full year budget
   const allMeses = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -83,7 +96,11 @@ export default function Dashboard() {
     return { ...m, accOrcado, accReal: mesesComReal.includes(m.mes) ? accReal : undefined };
   });
 
-  const isAnual = periodoView === 'anual';
+  // Highlight selected month in bar chart
+  const chartData = isMensal
+    ? accData.map(m => ({ ...m, isSelected: m.mes === mesSelecionado }))
+    : accData.map(m => ({ ...m, isSelected: false }));
+
   const varVariant = summary.variacao > 0 ? 'danger' : 'success';
   const saldoRestante = summary.orcadoAnual - summary.realizadoYTD;
   const pctExecutado = summary.orcadoAnual > 0 ? (summary.realizadoYTD / summary.orcadoAnual) * 100 : 0;
@@ -93,7 +110,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Visão geral OPEX 2026 — {isAnual ? 'Orçado Anual' : 'YTD'}</p>
+          <p className="text-sm text-muted-foreground">Visão geral OPEX 2026 — {periodoLabel}</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Calendar className="h-3.5 w-3.5" />
@@ -102,7 +119,23 @@ export default function Dashboard() {
       </div>
 
       {/* Summary Cards */}
-      {isAnual ? (
+      {isMensal ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <SummaryCard title={orcLabel} value={formatCompact(summary.orcadoYTD)} icon={Target} />
+          <SummaryCard title={realLabel} value={formatCompact(summary.realizadoYTD)} icon={DollarSign} />
+          <SummaryCard
+            title={`Variação ${MESES_PT[mesSelecionado! - 1]}`} value={formatCompact(summary.variacao)}
+            subtitle={formatPercent(summary.variacaoPercent)}
+            icon={summary.variacao > 0 ? TrendingUp : TrendingDown} variant={varVariant as any}
+          />
+          <SummaryCard title="Orçado Anual" value={formatCompact(summary.orcadoAnual)} icon={Target} onClick={() => navigate('/pacotes')} />
+          <SummaryCard
+            title="Projeção Anual" value={formatCompact(summary.projecaoAnual)}
+            subtitle={summary.orcadoAnual > 0 ? `${((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1)}% do orçado` : undefined}
+            icon={Activity} variant={summary.projecaoAnual > summary.orcadoAnual ? 'danger' : 'success'}
+          />
+        </div>
+      ) : isAnual ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <SummaryCard title="Orçado Anual" value={formatCompact(summary.orcadoAnual)} icon={Target} onClick={() => navigate('/pacotes')} />
           <SummaryCard title="Realizado Acum." value={formatCompact(summary.realizadoYTD)} icon={DollarSign} />
@@ -121,13 +154,13 @@ export default function Dashboard() {
           <SummaryCard
             title="Variação YTD" value={formatCompact(summary.variacao)}
             subtitle={formatPercent(summary.variacaoPercent)}
-            icon={summary.variacao > 0 ? TrendingUp : TrendingDown} variant={varVariant}
+            icon={summary.variacao > 0 ? TrendingUp : TrendingDown} variant={varVariant as any}
             onClick={() => navigate('/comparacao')}
           />
           <SummaryCard title="Orçado Anual" value={formatCompact(summary.orcadoAnual)} icon={Target} onClick={() => navigate('/pacotes')} />
           <SummaryCard
             title="Projeção Anual" value={formatCompact(summary.projecaoAnual)}
-            subtitle={`${((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1)}% do orçado`}
+            subtitle={summary.orcadoAnual > 0 ? `${((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1)}% do orçado` : undefined}
             icon={Activity} variant={summary.projecaoAnual > summary.orcadoAnual ? 'danger' : 'success'}
           />
         </div>
@@ -138,13 +171,21 @@ export default function Dashboard() {
         <div className="glass-card p-5 lg:col-span-2">
           <h3 className="text-sm font-semibold mb-4">Orçado vs Realizado — Mensal + Acumulado</h3>
           <ResponsiveContainer width="100%" height={320}>
-            <ComposedChart data={accData}>
+            <ComposedChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
               <XAxis dataKey="mesNome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} />
               <YAxis tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" opacity={0.4} radius={[3, 3, 0, 0]} />
-              <Bar dataKey="realizado" name="Realizado" fill="hsl(210,80%,60%)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" radius={[3, 3, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.2) : 0.4} />
+                ))}
+              </Bar>
+              <Bar dataKey="realizado" name="Realizado" fill="hsl(210,80%,60%)" radius={[3, 3, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.2) : 1} />
+                ))}
+              </Bar>
               <Line type="monotone" dataKey="accOrcado" name="Acum. Orçado" stroke="hsl(175,70%,45%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
               <Line type="monotone" dataKey="accReal" name="Acum. Realizado" stroke="hsl(210,80%,60%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
             </ComposedChart>

@@ -14,17 +14,14 @@ function parseNumber(value: unknown): number {
   if (typeof value === 'number') return isNaN(value) ? 0 : value;
   
   let str = String(value).trim();
-  // Remove currency symbols and spaces
   str = str.replace(/[R$\s]/g, '');
   
   const lastComma = str.lastIndexOf(',');
   const lastDot = str.lastIndexOf('.');
   
   if (lastComma > lastDot) {
-    // Brazilian format: 1.234,56
     str = str.replace(/\./g, '').replace(',', '.');
   } else {
-    // US format or no decimal: 1,234.56
     str = str.replace(/,/g, '');
   }
   
@@ -62,15 +59,26 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
     const row = raw[i];
     if (!row || row.length < 17) continue;
 
-    const base = String(row[0] || '').trim().toUpperCase();
-    if (base !== 'ORÇ26' && base !== 'REAL26') continue;
+    const base = String(row[0] || '').trim();
+    const baseUpper = base.toUpperCase();
+    const isOrc = baseUpper === 'ORÇ26' || baseUpper === 'ORC26' || baseUpper.startsWith('ORÇ') || baseUpper.startsWith('ORC');
+    const isReal = baseUpper === 'REAL26' || baseUpper.startsWith('REAL');
+
+    if (!isOrc && !isReal) continue;
 
     const executado = parseNumber(row[15]);
-    const mes = parseNumber(row[16]);
+    
+    const mesRaw = row[16];
+    let mes: number;
+    if (typeof mesRaw === 'number') {
+      mes = Math.round(mesRaw);
+    } else {
+      mes = Math.round(parseNumber(mesRaw));
+    }
     if (mes < 1 || mes > 12) continue;
 
     records.push({
-      base: base as 'ORÇ26' | 'REAL26',
+      base: (isOrc ? 'ORÇ26' : 'REAL26') as 'ORÇ26' | 'REAL26',
       centroCusto: sanitizeString(row[1]),
       descricaoCCusto: sanitizeString(row[2]),
       areaGrupo1: sanitizeString(row[5]),

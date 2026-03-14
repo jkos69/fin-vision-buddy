@@ -24,17 +24,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function ComparacaoPage() {
-  const { filteredRecords, periodoView } = useOPEX();
+  const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
   const mesesComReal = getMesesComReal(filteredRecords);
-  const summary = getSummary(filteredRecords, periodoView);
+  const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
 
+  const isMensal = periodoView === 'mensal' && mesSelecionado;
   const isAnual = periodoView === 'anual';
-  const orcLabel = isAnual ? 'Orçado Anual' : 'Orçado YTD';
-  const realLabel = isAnual ? 'Realizado Acum.' : 'Realizado YTD';
+  const orcLabel = isAnual ? 'Orçado Anual' : isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
+  const realLabel = isAnual ? 'Realizado Acum.' : isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
+  const periodoLabel = isAnual ? 'Visão Anual' : isMensal ? `Mês: ${MESES_PT[mesSelecionado! - 1]}` : 'YTD';
 
-  const areaData = groupBy(filteredRecords, 'areaGrupo1', mesesComReal, periodoView).filter(d => d.orcado > 0 || d.realizado > 0);
-  const pacoteData = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView).filter(d => d.variacao !== 0);
+  const areaData = groupBy(filteredRecords, 'areaGrupo1', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0);
+  const pacoteData = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.variacao !== 0);
   const waterfallData = pacoteData.sort((a, b) => b.variacao - a.variacao).map(p => ({
     nome: p.nome.replace('PACOTE ', ''),
     variacao: p.variacao,
@@ -85,7 +87,7 @@ export default function ComparacaoPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Orçado vs Realizado</h1>
-        <p className="text-sm text-muted-foreground">Análise comparativa e variações — {isAnual ? 'Visão Anual' : 'YTD'}</p>
+        <p className="text-sm text-muted-foreground">Análise comparativa e variações — {periodoLabel}</p>
       </div>
 
       {/* Alerts */}
@@ -146,7 +148,7 @@ export default function ComparacaoPage() {
             <span className={`font-mono font-semibold ${summary.projecaoAnual > summary.orcadoAnual ? 'text-destructive' : 'text-success'}`}>
               {formatCurrency(summary.projecaoAnual)}
             </span>
-            <span className="text-muted-foreground"> ({((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1)}% do orçado)</span>
+            <span className="text-muted-foreground"> ({summary.orcadoAnual > 0 ? ((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1) : 0}% do orçado)</span>
           </div>
         </div>
       </div>

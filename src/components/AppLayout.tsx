@@ -17,7 +17,7 @@ const navItems = [
 ];
 
 function SidebarContent() {
-  const { hasData, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords } = useOPEX();
+  const { hasData, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado } = useOPEX();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const lastMonth = mesesComReal.length > 0 ? MESES_PT[mesesComReal[mesesComReal.length - 1] - 1] : '';
 
@@ -66,7 +66,43 @@ function SidebarContent() {
             >
               Orçado Anual
             </button>
+            <button
+              onClick={() => {
+                setPeriodoView('mensal');
+                if (!mesSelecionado && mesesComReal.length > 0) {
+                  setMesSelecionado(mesesComReal[mesesComReal.length - 1]);
+                }
+              }}
+              className={`text-xs px-3 py-1.5 rounded-md text-left transition-colors ${periodoView === 'mensal' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+            >
+              Mês Individual
+            </button>
           </div>
+
+          {/* Seletor de mês */}
+          {periodoView === 'mensal' && (
+            <div className="grid grid-cols-4 gap-1 mt-2">
+              {MESES_PT.map((nome, i) => {
+                const mes = i + 1;
+                const temReal = mesesComReal.includes(mes);
+                const isSelected = mesSelecionado === mes;
+                return (
+                  <button
+                    key={mes}
+                    onClick={() => setMesSelecionado(mes)}
+                    className={`text-xs px-2 py-1 rounded text-center transition-colors
+                      ${isSelected ? 'bg-primary text-primary-foreground font-medium' : ''}
+                      ${temReal && !isSelected ? 'text-foreground hover:bg-accent' : ''}
+                      ${!temReal && !isSelected ? 'text-muted-foreground/50 hover:bg-accent/50' : ''}
+                    `}
+                  >
+                    {nome}
+                    {temReal && <span className="block h-0.5 w-2 mx-auto mt-0.5 rounded bg-primary/60" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Tipo toggle */}
@@ -118,7 +154,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   if (isMobile) {
     return (
       <div className="min-h-screen">
-        {/* Mobile header */}
         <header className="fixed top-0 left-0 right-0 z-50 h-12 flex items-center gap-3 px-4 border-b border-border bg-background/95 backdrop-blur-sm">
           <button onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -126,7 +161,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <h1 className="text-sm font-bold"><span className="text-primary">OPEX</span> Control</h1>
         </header>
 
-        {/* Mobile drawer */}
         {mobileOpen && (
           <>
             <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} />
