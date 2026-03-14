@@ -1,11 +1,11 @@
 import { FileUpload } from '@/components/FileUpload';
 import { useOPEX } from '@/contexts/OPEXContext';
-import { getMesesComReal, formatCurrency } from '@/lib/opex-utils';
+import { getMesesComReal } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { Database, Trash2 } from 'lucide-react';
 
 export default function UploadPage() {
-  const { records, setRecords, hasData, filteredRecords } = useOPEX();
+  const { records, clearRecords, hasData, filteredRecords } = useOPEX();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const orcCount = records.filter(r => r.base === 'ORÇ26').length;
   const realCount = records.filter(r => r.base === 'REAL26').length;
@@ -46,7 +46,7 @@ export default function UploadPage() {
             </div>
           </div>
           <button
-            onClick={() => { setRecords([]); localStorage.removeItem('opex-data'); }}
+            onClick={() => { if (window.confirm('Limpar todos os dados?')) clearRecords(); }}
             className="flex items-center gap-2 text-xs text-destructive hover:underline"
           >
             <Trash2 className="h-3 w-3" />
