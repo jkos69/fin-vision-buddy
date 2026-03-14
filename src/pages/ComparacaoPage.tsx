@@ -37,7 +37,7 @@ export default function ComparacaoPage() {
   }));
 
   // Month comparison - each selector is mes+base combo
-  type CompSelection = { mes: number; base: 'ORÇ26' | 'REAL26' };
+  type CompSelection = { mes: number; base: string };
 
   const defaultA: CompSelection = mesesComReal.length >= 1
     ? { mes: mesesComReal[0], base: 'REAL26' }
