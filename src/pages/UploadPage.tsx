@@ -1,14 +1,25 @@
 import { FileUpload } from '@/components/FileUpload';
 import { useOPEX } from '@/contexts/OPEXContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { getMesesComReal } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
-import { Database, Trash2 } from 'lucide-react';
+import { Database, Trash2, Lock } from 'lucide-react';
 
 export default function UploadPage() {
   const { records, clearRecords, hasData, filteredRecords } = useOPEX();
+  const { isCEO } = useAuth();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const orcCount = records.filter(r => r.base === 'ORÇ26').length;
   const realCount = records.filter(r => r.base === 'REAL26').length;
+
+  if (!isCEO) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Lock className="h-12 w-12 text-muted-foreground/50" />
+        <p className="text-muted-foreground text-sm">Os dados são atualizados pela administração.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">

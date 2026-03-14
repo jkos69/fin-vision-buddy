@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOPEX } from '@/contexts/OPEXContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { Package, ChevronRight, LayoutGrid, Table2 } from 'lucide-react';
@@ -27,6 +28,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function PacotesPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
+  const { isArea } = useAuth();
   const [selectedPacote, setSelectedPacote] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
@@ -35,9 +37,8 @@ export default function PacotesPage() {
   const pacoteOverview = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(p => p.orcado > 0 || p.realizado > 0);
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
-  const isAnual = periodoView === 'anual';
-  const orcLabel = isAnual ? 'Orçado Anual' : isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
-  const realLabel = isAnual ? 'Realizado Acum.' : isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
+  const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
+  const realLabel = isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
 
   const drillRecords = selectedPacote ? filteredRecords.filter(r => r.pacote === selectedPacote) : [];
   const areaBreakdown = selectedPacote ? groupBy(drillRecords, 'areaGrupo1', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
@@ -88,7 +89,7 @@ export default function PacotesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Por Pacote</h1>
+          <h1 className="text-2xl font-bold">{isArea ? 'Meus Pacotes' : 'Por Pacote'}</h1>
           <p className="text-sm text-muted-foreground">Análise por agrupamento de despesas</p>
         </div>
         {!selectedPacote && (

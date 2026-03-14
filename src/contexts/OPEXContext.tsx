@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import type { OPEXRecord } from '@/types/opex';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-type PeriodoView = 'ytd' | 'anual' | 'mensal';
+type PeriodoView = 'ytd' | 'mensal';
 
 interface OPEXContextType {
   records: OPEXRecord[];
@@ -54,11 +55,11 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
   const [tipoFilter, setTipoFilter] = useState<'all' | 'Opex sem Folha' | 'Folha Total'>('all');
   const [periodoView, setPeriodoView] = useState<PeriodoView>('ytd');
   const [mesSelecionado, setMesSelecionado] = useState<number | null>(null);
+  const { session } = useAuth();
 
   const reloadFromDB = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch in pages to handle >1000 rows
       let allRows: any[] = [];
       let from = 0;
       const pageSize = 1000;
@@ -116,7 +117,24 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const filteredRecords = tipoFilter === 'all' ? records : records.filter(r => r.tipo === tipoFilter);
+  const filteredRecords = useMemo(() => {
+    let recs = records;
+
+    // Filter by access level
+    if (session?.tipo === 'diretoria' && session.diretoria) {
+      recs = recs.filter(r => r.diretoria === session.diretoria);
+    } else if (session?.tipo === 'area' && session.area) {
+      recs = recs.filter(r => r.areaGrupo1 === session.area);
+    }
+    // CEO: no filter
+
+    // Filter by tipo (Folha/Opex)
+    if (tipoFilter !== 'all') {
+      recs = recs.filter(r => r.tipo === tipoFilter);
+    }
+
+    return recs;
+  }, [records, session, tipoFilter]);
 
   return (
     <OPEXContext.Provider value={{
