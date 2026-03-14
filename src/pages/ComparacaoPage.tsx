@@ -180,35 +180,43 @@ export default function ComparacaoPage() {
       {mesesComReal.length > 0 && (
         <div className="glass-card p-5 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-sm font-semibold">Comparação: {MESES_PT[mesA - 1]} vs {MESES_PT[mesB - 1]}</h3>
+            <h3 className="text-sm font-semibold">Comparação: {labelA} vs {labelB}</h3>
             <div className="flex items-center gap-2 text-xs">
-              <label className="text-muted-foreground">Mês A:</label>
-              <select value={mesA} onChange={e => setMesA(Number(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
-                {MESES_PT.map((nome, i) => (
-                  <option key={i} value={i + 1}>{nome}{mesesComReal.includes(i + 1) ? ' ●' : ''}</option>
+              <label className="text-muted-foreground">Lado A:</label>
+              <select value={encodeOpt(selA)} onChange={e => setSelA(decodeOpt(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
+                {compOptions.map(o => (
+                  <option key={encodeOpt(o)} value={encodeOpt(o)}>{o.label}</option>
                 ))}
               </select>
-              <label className="text-muted-foreground">Mês B:</label>
-              <select value={mesB} onChange={e => setMesB(Number(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
-                {MESES_PT.map((nome, i) => (
-                  <option key={i} value={i + 1}>{nome}{mesesComReal.includes(i + 1) ? ' ●' : ''}</option>
+              <label className="text-muted-foreground">Lado B:</label>
+              <select value={encodeOpt(selB)} onChange={e => setSelB(decodeOpt(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
+                {compOptions.map(o => (
+                  <option key={encodeOpt(o)} value={encodeOpt(o)}>{o.label}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={Math.max(200, compTop10.length * 40)}>
-            <BarChart data={compTop10} layout="vertical" margin={{ left: marginLeft }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-              <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-              <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
-              <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="valA" name={MESES_PT[mesA - 1]} fill="hsl(175,70%,45%)" />
-              <Bar dataKey="valB" name={MESES_PT[mesB - 1]} fill="hsl(210,80%,60%)" />
-            </BarChart>
-          </ResponsiveContainer>
+          {isSameSelection ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Selecione períodos diferentes para comparar
+            </div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={Math.max(200, compTop10.length * 40)}>
+                <BarChart data={compTop10} layout="vertical" margin={{ left: marginLeft }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
+                  <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                  <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="valA" name={labelA} fill="hsl(175,70%,45%)" />
+                  <Bar dataKey="valB" name={labelB} fill="hsl(210,80%,60%)" />
+                </BarChart>
+              </ResponsiveContainer>
 
-          <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${MESES_PT[mesA-1]}-vs-${MESES_PT[mesB-1]}.csv`} maxHeight="300px" />
+              <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${labelA}-vs-${labelB}.csv`} maxHeight="300px" />
+            </>
+          )}
         </div>
       )}
 
