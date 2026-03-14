@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent, getSummary } from '@/lib/opex-utils';
@@ -19,6 +20,22 @@ export default function ComparacaoPage() {
   const { isCEO, isDiretoria } = useAuth();
   const isMobile = useIsMobile();
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const highlightParam = searchParams.get('highlight');
+    const typeParam = searchParams.get('type');
+    if (highlightParam && typeParam && filteredRecords.length > 0) {
+      if (typeParam === 'Fornecedor') {
+        const recs = filteredRecords.filter(r => r.nomeFornecedor === highlightParam);
+        if (recs.length > 0) setDetailModal({ open: true, records: recs, title: `Fornecedor: ${highlightParam}` });
+      } else if (typeParam === 'Histórico') {
+        const recs = filteredRecords.filter(r => r.historico === highlightParam);
+        if (recs.length > 0) setDetailModal({ open: true, records: recs, title: `Histórico: ${highlightParam}` });
+      }
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, filteredRecords]);
   const mesesComReal = getMesesComReal(filteredRecords);
   const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
 

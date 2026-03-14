@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
@@ -17,6 +18,15 @@ export default function PacotesPage() {
   const [selectedPacote, setSelectedPacote] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const highlightParam = searchParams.get('highlight');
+    if (highlightParam && filteredRecords.length > 0) {
+      setSelectedPacote(highlightParam);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, filteredRecords]);
   const mesesComReal = getMesesComReal(filteredRecords);
 
   const pacoteOverview = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(p => p.orcado > 0 || p.realizado > 0);
