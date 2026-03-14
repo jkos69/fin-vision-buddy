@@ -1,14 +1,17 @@
-import { TrendingDown, TrendingUp, DollarSign, Target, Calendar, Activity, Wallet } from 'lucide-react';
+import { TrendingDown, TrendingUp, DollarSign, Target, Calendar, Activity, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { getSummary, getMonthlyData, groupBy, getMesesComReal, formatCurrency, formatPercent, formatCompact } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Line, ComposedChart } from 'recharts';
 import { FileUpload } from '@/components/FileUpload';
+import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 
-const DIRETORIA_COLORS = [
+const DONUT_COLORS = [
   'hsl(175, 70%, 45%)', 'hsl(210, 80%, 60%)', 'hsl(38, 92%, 55%)',
   'hsl(280, 60%, 55%)', 'hsl(152, 60%, 42%)', 'hsl(0, 72%, 55%)',
+  'hsl(320, 60%, 50%)', 'hsl(45, 80%, 50%)', 'hsl(190, 70%, 50%)',
 ];
 
 function SummaryCard({ title, value, subtitle, icon: Icon, variant, onClick }: {
@@ -52,6 +55,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function Dashboard() {
   const { filteredRecords, hasData, periodoView, mesSelecionado } = useOPEX();
+  const { isCEO, isDiretoria, isArea, session } = useAuth();
   const navigate = useNavigate();
 
   if (!hasData) {
@@ -59,9 +63,11 @@ export default function Dashboard() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2"><span className="text-primary">OPEX</span> Control 2026</h1>
-          <p className="text-muted-foreground">Importe sua planilha Excel para começar</p>
+          <p className="text-muted-foreground">
+            {isCEO ? 'Importe sua planilha Excel para começar' : 'Aguardando importação de dados pela administração'}
+          </p>
         </div>
-        <div className="w-full max-w-lg"><FileUpload /></div>
+        {isCEO && <div className="w-full max-w-lg"><FileUpload /></div>}
       </div>
     );
   }
@@ -71,21 +77,22 @@ export default function Dashboard() {
   const mesesComReal = getMesesComReal(filteredRecords);
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
-  const isAnual = periodoView === 'anual';
+  const mesTemReal = isMensal ? mesesComReal.includes(mesSelecionado!) : true;
 
-  const orcLabel = isAnual ? 'Orçado Anual'
-    : isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}`
-    : 'Orçado YTD';
-  const realLabel = isAnual ? 'Realizado Acum.'
-    : isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}`
-    : 'Realizado YTD';
-  const periodoLabel = isAnual ? 'Orçado Anual'
-    : isMensal ? `Mês: ${MESES_PT[mesSelecionado! - 1]}`
-    : 'YTD';
+  const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
+  const realLabel = isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
+  const periodoLabel = isMensal ? `Mês: ${MESES_PT[mesSelecionado! - 1]}` : 'YTD';
 
-  // Donut: always full year budget
+  // Dashboard subtitle
+  const dashSubtitle = isCEO ? 'Visão geral OPEX 2026'
+    : isDiretoria ? `OPEX 2026 — ${session?.diretoria || ''}`
+    : `OPEX 2026 — ${session?.area || ''}`;
+
+  // Donut: adaptive by level
+  const donutField = isCEO ? 'diretoria' : isDiretoria ? 'areaGrupo1' : 'pacote';
+  const donutTitle = isCEO ? 'Orçado Anual por Diretoria' : isDiretoria ? 'Orçado Anual por Área' : 'Orçado Anual por Pacote';
   const allMeses = [1,2,3,4,5,6,7,8,9,10,11,12];
-  const diretoriaDataAnual = groupBy(filteredRecords.filter(r => r.base === 'ORÇ26'), 'diretoria', allMeses, 'ytd');
+  const donutData = groupBy(filteredRecords.filter(r => r.base === 'ORÇ26'), donutField as keyof typeof filteredRecords[0], allMeses, 'ytd');
 
   // Accumulated data
   let accOrcado = 0;
@@ -96,21 +103,40 @@ export default function Dashboard() {
     return { ...m, accOrcado, accReal: mesesComReal.includes(m.mes) ? accReal : undefined };
   });
 
-  // Highlight selected month in bar chart
   const chartData = isMensal
     ? accData.map(m => ({ ...m, isSelected: m.mes === mesSelecionado }))
     : accData.map(m => ({ ...m, isSelected: false }));
 
   const varVariant = summary.variacao > 0 ? 'danger' : 'success';
-  const saldoRestante = summary.orcadoAnual - summary.realizadoYTD;
-  const pctExecutado = summary.orcadoAnual > 0 ? (summary.realizadoYTD / summary.orcadoAnual) * 100 : 0;
+
+  // Alerts
+  const alertField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
+  const alertLabel = isCEO || isDiretoria ? 'área(s)' : 'recurso(s)';
+  const alertData = groupBy(filteredRecords, alertField as keyof typeof filteredRecords[0], mesesComReal, periodoView, mesSelecionado)
+    .filter(a => Math.abs(a.variacaoPercent) > 20 && (a.orcado > 0 || a.realizado > 0));
+
+  // Top variations
+  const varField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
+  const varTitle = isCEO || isDiretoria ? 'Maiores Variações por Área' : 'Maiores Variações por Recurso';
+  const varData = groupBy(filteredRecords, varField as keyof typeof filteredRecords[0], mesesComReal, periodoView, mesSelecionado)
+    .filter(d => d.orcado > 0 || d.realizado > 0);
+  const topPositive = [...varData].sort((a, b) => b.variacao - a.variacao).slice(0, 5).filter(d => d.variacao > 0);
+  const topNegative = [...varData].sort((a, b) => a.variacao - b.variacao).slice(0, 5).filter(d => d.variacao < 0);
+
+  const variationColumns: ColumnDef[] = [
+    { key: 'nome', label: 'Nome', align: 'left' },
+    { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
+    { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
+    { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
+    { key: 'variacaoPercent', label: 'Var %', align: 'right', format: 'percent' },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Visão geral OPEX 2026 — {periodoLabel}</p>
+          <p className="text-sm text-muted-foreground">{dashSubtitle} — {periodoLabel}</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Calendar className="h-3.5 w-3.5" />
@@ -118,32 +144,38 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Alert: no real data for selected month */}
+      {isMensal && !mesTemReal && (
+        <div className="glass-card p-3 border-warning/30 flex items-center gap-2 text-xs text-warning">
+          <AlertTriangle className="h-4 w-4" />
+          ⚠️ {MESES_PT[mesSelecionado! - 1]}/26: apenas dados orçados disponíveis
+        </div>
+      )}
+
+      {/* Contextual alerts */}
+      {alertData.length > 0 && (
+        <div className="glass-card p-4 border-warning/30">
+          <p className="text-xs text-warning font-medium">
+            ⚠️ {alertData.length} {alertLabel} com variação &gt; 20%:{' '}
+            <span className="text-foreground">{alertData.map(a => a.nome).join(', ')}</span>
+          </p>
+        </div>
+      )}
+
       {/* Summary Cards */}
       {isMensal ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard title={orcLabel} value={formatCompact(summary.orcadoYTD)} icon={Target} />
-          <SummaryCard title={realLabel} value={formatCompact(summary.realizadoYTD)} icon={DollarSign} />
+          <SummaryCard title={realLabel} value={mesTemReal ? formatCompact(summary.realizadoYTD) : '—'} icon={DollarSign} />
           <SummaryCard
-            title={`Variação ${MESES_PT[mesSelecionado! - 1]}`} value={formatCompact(summary.variacao)}
-            subtitle={formatPercent(summary.variacaoPercent)}
+            title={`Variação ${MESES_PT[mesSelecionado! - 1]}`}
+            value={mesTemReal ? formatCompact(summary.variacao) : '—'}
+            subtitle={mesTemReal ? formatPercent(summary.variacaoPercent) : undefined}
             icon={summary.variacao > 0 ? TrendingUp : TrendingDown} variant={varVariant as any}
           />
-          <SummaryCard title="Orçado Anual" value={formatCompact(summary.orcadoAnual)} icon={Target} onClick={() => navigate('/pacotes')} />
           <SummaryCard
             title="Projeção Anual" value={formatCompact(summary.projecaoAnual)}
             subtitle={summary.orcadoAnual > 0 ? `${((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1)}% do orçado` : undefined}
-            icon={Activity} variant={summary.projecaoAnual > summary.orcadoAnual ? 'danger' : 'success'}
-          />
-        </div>
-      ) : isAnual ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <SummaryCard title="Orçado Anual" value={formatCompact(summary.orcadoAnual)} icon={Target} onClick={() => navigate('/pacotes')} />
-          <SummaryCard title="Realizado Acum." value={formatCompact(summary.realizadoYTD)} icon={DollarSign} />
-          <SummaryCard title="% Executado" value={`${pctExecutado.toFixed(1)}%`} subtitle={`do orçado anual`} icon={Activity} variant={pctExecutado > (mesesComReal.length / 12) * 100 + 5 ? 'danger' : 'success'} />
-          <SummaryCard title="Saldo Restante" value={formatCompact(saldoRestante)} icon={Wallet} variant={saldoRestante < 0 ? 'danger' : 'success'} />
-          <SummaryCard
-            title="Projeção Anual" value={formatCompact(summary.projecaoAnual)}
-            subtitle={`${((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1)}% do orçado`}
             icon={Activity} variant={summary.projecaoAnual > summary.orcadoAnual ? 'danger' : 'success'}
           />
         </div>
@@ -178,12 +210,12 @@ export default function Dashboard() {
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" radius={[3, 3, 0, 0]}>
                 {chartData.map((entry, index) => (
-                  <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.2) : 0.4} />
+                  <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.15) : 0.4} />
                 ))}
               </Bar>
               <Bar dataKey="realizado" name="Realizado" fill="hsl(210,80%,60%)" radius={[3, 3, 0, 0]}>
                 {chartData.map((entry, index) => (
-                  <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.2) : 1} />
+                  <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.15) : 1} />
                 ))}
               </Bar>
               <Line type="monotone" dataKey="accOrcado" name="Acum. Orçado" stroke="hsl(175,70%,45%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
@@ -193,16 +225,16 @@ export default function Dashboard() {
         </div>
 
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold mb-4">Orçado Anual por Diretoria</h3>
+          <h3 className="text-sm font-semibold mb-4">{donutTitle}</h3>
           <ResponsiveContainer width="100%" height={320}>
             <PieChart>
               <Pie
-                data={diretoriaDataAnual.filter(d => d.orcado > 0)}
+                data={donutData.filter(d => d.orcado > 0)}
                 dataKey="orcado" nameKey="nome"
                 cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2}
               >
-                {diretoriaDataAnual.filter(d => d.orcado > 0).map((_, i) => (
-                  <Cell key={i} fill={DIRETORIA_COLORS[i % DIRETORIA_COLORS.length]} />
+                {donutData.filter(d => d.orcado > 0).map((_, i) => (
+                  <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip formatter={(v: number) => formatCurrency(v)} />
@@ -211,6 +243,24 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Top Variations */}
+      {(topPositive.length > 0 || topNegative.length > 0) && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {topPositive.length > 0 && (
+            <div>
+              <div className="px-1 py-2"><h3 className="text-sm font-semibold text-destructive">🔴 Acima do Orçado</h3></div>
+              <SortableTable columns={variationColumns} data={topPositive} />
+            </div>
+          )}
+          {topNegative.length > 0 && (
+            <div>
+              <div className="px-1 py-2"><h3 className="text-sm font-semibold text-success">🟢 Abaixo do Orçado</h3></div>
+              <SortableTable columns={variationColumns} data={topNegative} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

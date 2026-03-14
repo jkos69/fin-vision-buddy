@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOPEX } from '@/contexts/OPEXContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { Building2, ChevronRight } from 'lucide-react';
@@ -32,8 +33,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function AreasPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
-  const [selectedDiretoria, setSelectedDiretoria] = useState<string | null>(null);
-  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const { isCEO, isDiretoria, isArea, session } = useAuth();
+
+  const [selectedDiretoria, setSelectedDiretoria] = useState<string | null>(
+    isDiretoria || isArea ? session?.diretoria || null : null
+  );
+  const [selectedArea, setSelectedArea] = useState<string | null>(
+    isArea ? session?.area || null : null
+  );
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
 
   const mesesComReal = getMesesComReal(filteredRecords);
@@ -49,9 +56,10 @@ export default function AreasPage() {
   const totalArea = recursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
-  const isAnual = periodoView === 'anual';
-  const orcLabel = isAnual ? 'Orçado Anual' : isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
-  const realLabel = isAnual ? 'Realizado Acum.' : isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
+  const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
+  const realLabel = isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
+
+  const pageTitle = isCEO ? 'Por Diretoria / Área' : isDiretoria ? 'Minhas Áreas' : 'Minha Área';
 
   const areaColumns: ColumnDef[] = [
     { key: 'nome', label: 'Área', align: 'left' },
@@ -89,17 +97,28 @@ export default function AreasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Por Diretoria / Área</h1>
+        <h1 className="text-2xl font-bold">{pageTitle}</h1>
         <p className="text-sm text-muted-foreground">Navegue pela hierarquia organizacional</p>
       </div>
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
-        <button onClick={() => { setSelectedDiretoria(null); setSelectedArea(null); }} className="text-primary hover:underline">Diretorias</button>
-        {selectedDiretoria && (
+        {isCEO && (
+          <button onClick={() => { setSelectedDiretoria(null); setSelectedArea(null); }} className="text-primary hover:underline">Diretorias</button>
+        )}
+        {!isCEO && selectedDiretoria && (
+          <span className="text-muted-foreground">Diretoria: {selectedDiretoria}</span>
+        )}
+        {isCEO && selectedDiretoria && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
             <button onClick={() => setSelectedArea(null)} className="text-primary hover:underline">Diretoria: {selectedDiretoria}</button>
+          </>
+        )}
+        {isDiretoria && selectedArea && (
+          <>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <button onClick={() => setSelectedArea(null)} className="text-primary hover:underline">Áreas</button>
           </>
         )}
         {selectedArea && (
@@ -110,8 +129,8 @@ export default function AreasPage() {
         )}
       </div>
 
-      {/* Level 1: Diretorias */}
-      {!selectedDiretoria && (
+      {/* Level 1: Diretorias — CEO only */}
+      {isCEO && !selectedDiretoria && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {diretoriaData.map(d => (
             <button key={d.nome} onClick={() => setSelectedDiretoria(d.nome)} className="glass-card p-5 text-left hover:border-primary/50 transition-all group">
@@ -138,8 +157,8 @@ export default function AreasPage() {
         </div>
       )}
 
-      {/* Level 2: Áreas table */}
-      {selectedDiretoria && !selectedArea && (
+      {/* Level 2: Áreas table — CEO+Diretoria (when diretoria selected, area not) */}
+      {selectedDiretoria && !selectedArea && (isCEO || isDiretoria) && (
         <SortableTable
           columns={areaColumns}
           data={areaData}
@@ -165,7 +184,6 @@ export default function AreasPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Top 5 as sortable table */}
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold mb-4">Top 5 Maiores Custos (por Recurso)</h3>
             <SortableTable
@@ -184,7 +202,6 @@ export default function AreasPage() {
             />
           </div>
 
-          {/* Full resource table */}
           <div>
             <div className="px-1 py-2"><h3 className="text-sm font-semibold">Detalhamento por Recurso</h3></div>
             <SortableTable

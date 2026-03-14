@@ -9,19 +9,23 @@ import { SearchCommand } from '@/components/SearchCommand';
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const navItems = [
-  { to: '/', icon: BarChart3, label: 'Dashboard' },
-  { to: '/areas', icon: Building2, label: 'Por Diretoria / Área' },
-  { to: '/pacotes', icon: Package, label: 'Por Pacote' },
-  { to: '/comparacao', icon: GitCompareArrows, label: 'Orçado vs Realizado' },
-  { to: '/upload', icon: Upload, label: 'Upload' },
-];
-
 function SidebarContent() {
   const { hasData, loading, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado } = useOPEX();
-  const { session, logout } = useAuth();
+  const { session, logout, isCEO, isDiretoria, isArea } = useAuth();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const lastMonth = mesesComReal.length > 0 ? MESES_PT[mesesComReal[mesesComReal.length - 1] - 1] : '';
+
+  const navItems = [
+    { to: '/', icon: BarChart3, label: 'Dashboard', show: true },
+    { to: '/areas', icon: Building2, label: isCEO ? 'Por Diretoria / Área' : isDiretoria ? 'Minhas Áreas' : 'Minha Área', show: true },
+    { to: '/pacotes', icon: Package, label: isArea ? 'Meus Pacotes' : 'Por Pacote', show: true },
+    { to: '/comparacao', icon: GitCompareArrows, label: 'Orçado vs Realizado', show: true },
+    { to: '/upload', icon: Upload, label: 'Upload', show: isCEO },
+  ].filter(item => item.show);
+
+  const contextLabel = isCEO ? 'Visão Consolidada'
+    : isDiretoria ? session?.diretoria || ''
+    : isArea ? `${session?.area || ''} · ${session?.diretoria || ''}` : '';
 
   return (
     <>
@@ -31,7 +35,10 @@ function SidebarContent() {
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">Controle Orçamentário 2026</p>
         {session && (
-          <p className="text-xs text-primary/80 mt-1 truncate">Olá, {session.nomeDisplay}</p>
+          <>
+            <p className="text-xs text-primary/80 mt-1 truncate">Olá, {session.nomeDisplay}</p>
+            {contextLabel && <p className="text-[10px] text-muted-foreground truncate">{contextLabel}</p>}
+          </>
         )}
       </div>
 
@@ -65,18 +72,12 @@ function SidebarContent() {
         {/* Periodo toggle */}
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground font-medium px-1">Período</p>
-          <div className="flex flex-col gap-1">
+          <div className="flex gap-1">
             <button
               onClick={() => setPeriodoView('ytd')}
-              className={`text-xs px-3 py-1.5 rounded-md text-left transition-colors ${periodoView === 'ytd' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+              className={`flex-1 text-xs px-3 py-1.5 rounded-md text-center transition-colors ${periodoView === 'ytd' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
             >
-              YTD {lastMonth ? `(até ${lastMonth})` : ''}
-            </button>
-            <button
-              onClick={() => setPeriodoView('anual')}
-              className={`text-xs px-3 py-1.5 rounded-md text-left transition-colors ${periodoView === 'anual' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
-            >
-              Orçado Anual
+              YTD {lastMonth ? `(${lastMonth})` : ''}
             </button>
             <button
               onClick={() => {
@@ -85,9 +86,9 @@ function SidebarContent() {
                   setMesSelecionado(mesesComReal[mesesComReal.length - 1]);
                 }
               }}
-              className={`text-xs px-3 py-1.5 rounded-md text-left transition-colors ${periodoView === 'mensal' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+              className={`flex-1 text-xs px-3 py-1.5 rounded-md text-center transition-colors ${periodoView === 'mensal' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
             >
-              Mês Individual
+              Mês
             </button>
           </div>
 
@@ -102,14 +103,14 @@ function SidebarContent() {
                   <button
                     key={mes}
                     onClick={() => setMesSelecionado(mes)}
-                    className={`text-xs px-2 py-1 rounded text-center transition-colors
+                    className={`text-xs py-1.5 rounded text-center transition-colors relative
                       ${isSelected ? 'bg-primary text-primary-foreground font-medium' : ''}
-                      ${temReal && !isSelected ? 'text-foreground hover:bg-accent' : ''}
-                      ${!temReal && !isSelected ? 'text-muted-foreground/50 hover:bg-accent/50' : ''}
+                      ${temReal && !isSelected ? 'text-foreground hover:bg-accent font-medium' : ''}
+                      ${!temReal && !isSelected ? 'text-muted-foreground/40 hover:bg-accent/30' : ''}
                     `}
                   >
                     {nome}
-                    {temReal && <span className="block h-0.5 w-2 mx-auto mt-0.5 rounded bg-primary/60" />}
+                    {temReal && !isSelected && <span className="block h-0.5 w-2 mx-auto mt-0.5 rounded bg-primary/60" />}
                   </button>
                 );
               })}
@@ -142,7 +143,7 @@ function SidebarContent() {
           </div>
         )}
 
-        {hasData && (
+        {hasData && isCEO && (
           <button
             onClick={() => { if (window.confirm('Limpar todos os dados importados?')) clearRecords(); }}
             className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors w-full text-left"

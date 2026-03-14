@@ -22,7 +22,7 @@ export function getMesesComReal(records: OPEXRecord[]): number[] {
 
 export function getSummary(
   records: OPEXRecord[],
-  periodoView: 'ytd' | 'anual' | 'mensal' = 'ytd',
+  periodoView: 'ytd' | 'mensal' = 'ytd',
   mesSelecionado: number | null = null
 ): SummaryData {
   const mesesComReal = getMesesComReal(records);
@@ -34,9 +34,6 @@ export function getSummary(
   if (periodoView === 'mensal' && mesSelecionado) {
     orcadoRef = records.filter(r => r.base === 'ORÇ26' && r.mes === mesSelecionado).reduce((s, r) => s + r.executado, 0);
     realizadoRef = records.filter(r => r.base === 'REAL26' && r.mes === mesSelecionado).reduce((s, r) => s + r.executado, 0);
-  } else if (periodoView === 'anual') {
-    orcadoRef = orcadoAnual;
-    realizadoRef = records.filter(r => r.base === 'REAL26').reduce((s, r) => s + r.executado, 0);
   } else {
     // YTD
     orcadoRef = records.filter(r => r.base === 'ORÇ26' && mesesComReal.includes(r.mes)).reduce((s, r) => s + r.executado, 0);
@@ -70,30 +67,19 @@ export function getSemaforo(realizado: number, orcado: number): 'green' | 'yello
   return 'red';
 }
 
-export function getSemaforoAnual(realizado: number, orcadoAnual: number, mesesComReal: number[]): 'green' | 'yellow' | 'red' {
-  if (orcadoAnual === 0 || mesesComReal.length === 0) return 'green';
-  const proporcaoExecutada = realizado / orcadoAnual;
-  const proporcaoEsperada = mesesComReal.length / 12;
-  const diff = (proporcaoExecutada - proporcaoEsperada) * 100;
-  if (diff > 5) return 'red';
-  if (diff >= -5) return 'yellow';
-  return 'green';
-}
-
 export function groupBy(
   records: OPEXRecord[],
   field: keyof OPEXRecord,
   mesesComReal: number[],
-  periodoView: 'ytd' | 'anual' | 'mensal' = 'ytd',
+  periodoView: 'ytd' | 'mensal' = 'ytd',
   mesSelecionado: number | null = null
 ): GroupedData[] {
-  const groups = new Map<string, { orcado: number; orcadoAnual: number; realizado: number }>();
+  const groups = new Map<string, { orcado: number; realizado: number }>();
   records.forEach(r => {
     const key = String(r[field]);
-    if (!groups.has(key)) groups.set(key, { orcado: 0, orcadoAnual: 0, realizado: 0 });
+    if (!groups.has(key)) groups.set(key, { orcado: 0, realizado: 0 });
     const g = groups.get(key)!;
     if (r.base === 'ORÇ26') {
-      g.orcadoAnual += r.executado;
       if (periodoView === 'mensal' && mesSelecionado) {
         if (r.mes === mesSelecionado) g.orcado += r.executado;
       } else if (mesesComReal.includes(r.mes)) {
@@ -109,17 +95,14 @@ export function groupBy(
     }
   });
 
-  return Array.from(groups.entries()).map(([nome, { orcado, orcadoAnual, realizado }]) => {
-    const base = periodoView === 'anual' ? orcadoAnual : orcado;
-    return {
-      nome,
-      orcado: base,
-      realizado,
-      variacao: realizado - base,
-      variacaoPercent: base !== 0 ? ((realizado - base) / base) * 100 : 0,
-      semaforo: periodoView === 'anual' ? getSemaforoAnual(realizado, orcadoAnual, mesesComReal) : getSemaforo(realizado, orcado),
-    };
-  }).sort((a, b) => b.orcado - a.orcado);
+  return Array.from(groups.entries()).map(([nome, { orcado, realizado }]) => ({
+    nome,
+    orcado,
+    realizado,
+    variacao: realizado - orcado,
+    variacaoPercent: orcado !== 0 ? ((realizado - orcado) / orcado) * 100 : 0,
+    semaforo: getSemaforo(realizado, orcado),
+  })).sort((a, b) => b.orcado - a.orcado);
 }
 
 export function exportCSV(headers: string[], rows: string[][], filename: string) {

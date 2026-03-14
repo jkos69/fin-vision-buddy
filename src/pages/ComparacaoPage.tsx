@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOPEX } from '@/contexts/OPEXContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent, getSummary } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, ReferenceLine, Cell } from 'recharts';
@@ -25,17 +26,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function ComparacaoPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
+  const { isCEO, isDiretoria } = useAuth();
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
   const mesesComReal = getMesesComReal(filteredRecords);
   const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
-  const isAnual = periodoView === 'anual';
-  const orcLabel = isAnual ? 'Orçado Anual' : isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
-  const realLabel = isAnual ? 'Realizado Acum.' : isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
-  const periodoLabel = isAnual ? 'Visão Anual' : isMensal ? `Mês: ${MESES_PT[mesSelecionado! - 1]}` : 'YTD';
+  const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
+  const realLabel = isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
+  const periodoLabel = isMensal ? `Mês: ${MESES_PT[mesSelecionado! - 1]}` : 'YTD';
 
-  const areaData = groupBy(filteredRecords, 'areaGrupo1', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0);
+  const semaforoField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
+  const semaforoLabel = isCEO || isDiretoria ? 'Área' : 'Recurso';
+  const areaData = groupBy(filteredRecords, semaforoField as keyof typeof filteredRecords[0], mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0);
   const pacoteData = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.variacao !== 0);
   const waterfallData = pacoteData.sort((a, b) => b.variacao - a.variacao).map(p => ({
     nome: p.nome.replace('PACOTE ', ''),
@@ -66,7 +69,7 @@ export default function ComparacaoPage() {
 
   const semaforoColumns: ColumnDef[] = [
     { key: 'semaforo', label: 'Status', align: 'center', sortable: false, render: (v) => <SemaforoIcon status={v} /> },
-    { key: 'nome', label: 'Área', align: 'left' },
+    { key: 'nome', label: semaforoLabel, align: 'left' },
     { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
     { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
     { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
@@ -78,9 +81,10 @@ export default function ComparacaoPage() {
     { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
   ];
 
-  const openAreaDetail = (areaNome: string) => {
-    const recs = filteredRecords.filter(r => r.areaGrupo1 === areaNome);
-    setDetailModal({ open: true, records: recs, title: `Área: ${areaNome}` });
+  const openDetail = (nome: string) => {
+    const field = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
+    const recs = filteredRecords.filter(r => (r as any)[field] === nome);
+    setDetailModal({ open: true, records: recs, title: `${semaforoLabel}: ${nome}` });
   };
 
   return (
@@ -98,7 +102,7 @@ export default function ComparacaoPage() {
             {alertAreas.map(a => (
               <button
                 key={a.nome}
-                onClick={() => openAreaDetail(a.nome)}
+                onClick={() => openDetail(a.nome)}
                 className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${a.variacao > 0 ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}
               >
                 {a.nome}: {formatPercent(a.variacaoPercent)}
@@ -153,14 +157,14 @@ export default function ComparacaoPage() {
         </div>
       </div>
 
-      {/* Semáforo por Área */}
+      {/* Semáforo */}
       <div>
-        <div className="px-1 py-2"><h3 className="text-sm font-semibold">Semáforo por Área</h3></div>
+        <div className="px-1 py-2"><h3 className="text-sm font-semibold">Semáforo por {semaforoLabel}</h3></div>
         <SortableTable
           columns={semaforoColumns}
           data={areaData}
-          onRowClick={(row) => openAreaDetail(row.nome)}
-          exportFilename="semaforo-areas.csv"
+          onRowClick={(row) => openDetail(row.nome)}
+          exportFilename={`semaforo-${semaforoField}.csv`}
         />
       </div>
 
