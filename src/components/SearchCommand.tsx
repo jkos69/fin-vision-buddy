@@ -71,7 +71,10 @@ export function SearchCommand() {
   useEffect(() => { setSelectedIndex(0); }, [flatResults]);
 
   const selectResult = useCallback((r: typeof results[0]) => {
-    navigate(r.route);
+    const params = new URLSearchParams();
+    params.set('highlight', r.value);
+    params.set('type', r.type);
+    navigate(`${r.route}?${params.toString()}`);
     setOpen(false);
     setQuery('');
   }, [navigate]);

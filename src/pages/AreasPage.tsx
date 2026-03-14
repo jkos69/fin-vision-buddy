@@ -28,6 +28,30 @@ export default function AreasPage() {
     isArea ? session?.area || null : null
   );
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const highlightParam = searchParams.get('highlight');
+    const typeParam = searchParams.get('type');
+    if (highlightParam && typeParam && filteredRecords.length > 0) {
+      if (typeParam === 'Área') {
+        const areaRecord = filteredRecords.find(r => r.areaGrupo1 === highlightParam);
+        if (areaRecord) {
+          setSelectedDiretoria(areaRecord.diretoria);
+          setSelectedArea(highlightParam);
+        }
+      } else if (typeParam === 'Recurso') {
+        const recursoRecord = filteredRecords.find(r => r.recurso === highlightParam);
+        if (recursoRecord) {
+          setSelectedDiretoria(recursoRecord.diretoria);
+          setSelectedArea(recursoRecord.areaGrupo1);
+          const recs = filteredRecords.filter(r => r.recurso === highlightParam);
+          setDetailModal({ open: true, records: recs, title: `Recurso: ${highlightParam}` });
+        }
+      }
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, filteredRecords]);
 
   const mesesComReal = getMesesComReal(filteredRecords);
   const diretoriaData = groupBy(filteredRecords, 'diretoria', mesesComReal, periodoView, mesSelecionado);
