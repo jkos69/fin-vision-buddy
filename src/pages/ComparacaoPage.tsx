@@ -36,29 +36,74 @@ export default function ComparacaoPage() {
     variacao: p.variacao,
   }));
 
-  // Month comparison
-  const [mesA, setMesA] = useState<number>(mesesComReal[0] || 1);
-  const [mesB, setMesB] = useState<number>(mesesComReal[mesesComReal.length - 1] || (mesesComReal[0] || 1));
+  // Month comparison - each selector is mes+base combo
+  type CompSelection = { mes: number; base: string };
+
+  const defaultA: CompSelection = mesesComReal.length >= 1
+    ? { mes: mesesComReal[0], base: 'REAL26' }
+    : { mes: 1, base: 'ORÇ26' };
+  const defaultB: CompSelection = mesesComReal.length >= 2
+    ? { mes: mesesComReal[mesesComReal.length - 1], base: 'REAL26' }
+    : mesesComReal.length === 1
+      ? { mes: mesesComReal[0], base: 'ORÇ26' }
+      : { mes: 1, base: 'ORÇ26' };
+
+  const [selA, setSelA] = useState<CompSelection>(defaultA);
+  const [selB, setSelB] = useState<CompSelection>(defaultB);
+
+  const isSameSelection = selA.mes === selB.mes && selA.base === selB.base;
+
+  // Build options: "Jan Orçado", "Jan Realizado" (only if has real), etc.
+  const compOptions: { mes: number; base: string; label: string }[] = MESES_PT.flatMap((nome, i) => {
+    const mes = i + 1;
+    const opts: { mes: number; base: string; label: string }[] = [{ mes, base: 'ORÇ26', label: `${nome} Orçado` }];
+    if (mesesComReal.includes(mes)) {
+      opts.push({ mes, base: 'REAL26', label: `${nome} Realizado` });
+    }
+    return opts;
+  });
+
+  const encodeOpt = (s: CompSelection) => `${s.mes}-${s.base}`;
+  const decodeOpt = (v: string): CompSelection => {
+    const [m, ...rest] = v.split('-');
+    return { mes: Number(m), base: rest.join('-') as 'ORÇ26' | 'REAL26' };
+  };
 
   const compField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
-  const compDataA = groupBy(filteredRecords.filter(r => r.mes === mesA), compField as keyof typeof filteredRecords[0], [mesA], 'mensal', mesA);
-  const compDataB = groupBy(filteredRecords.filter(r => r.mes === mesB), compField as keyof typeof filteredRecords[0], [mesB], 'mensal', mesB);
 
-  const compMerged = [...new Set([...compDataA.map(d => d.nome), ...compDataB.map(d => d.nome)])].map(nome => {
-    const a = compDataA.find(d => d.nome === nome);
-    const b = compDataB.find(d => d.nome === nome);
-    const valA = a ? (a.realizado || a.orcado) : 0;
-    const valB = b ? (b.realizado || b.orcado) : 0;
+  // Filter records for each side independently by mes + base
+  const recsA = filteredRecords.filter(r => r.mes === selA.mes && r.base === selA.base);
+  const recsB = filteredRecords.filter(r => r.mes === selB.mes && r.base === selB.base);
+
+  // Group by field and sum executado
+  const groupExec = (recs: typeof filteredRecords, field: string) => {
+    const map = new Map<string, number>();
+    recs.forEach(r => {
+      const key = String((r as any)[field]);
+      map.set(key, (map.get(key) || 0) + r.executado);
+    });
+    return map;
+  };
+
+  const groupA = groupExec(recsA, compField);
+  const groupB = groupExec(recsB, compField);
+
+  const compMerged = [...new Set([...groupA.keys(), ...groupB.keys()])].map(nome => {
+    const valA = groupA.get(nome) || 0;
+    const valB = groupB.get(nome) || 0;
     return { nome, valA, valB, variacao: valB - valA, varPercent: valA !== 0 ? ((valB - valA) / valA) * 100 : 0 };
   }).filter(d => d.valA !== 0 || d.valB !== 0);
 
   const compTop10 = [...compMerged].sort((a, b) => Math.max(Math.abs(b.valA), Math.abs(b.valB)) - Math.max(Math.abs(a.valA), Math.abs(a.valB))).slice(0, 10);
 
+  const labelA = compOptions.find(o => o.mes === selA.mes && o.base === selA.base)?.label || '';
+  const labelB = compOptions.find(o => o.mes === selB.mes && o.base === selB.base)?.label || '';
+
   const compColumns: ColumnDef[] = [
     { key: 'nome', label: isCEO || isDiretoria ? 'Área' : 'Recurso', align: 'left' },
-    { key: 'valA', label: MESES_PT[mesA - 1], align: 'right', format: 'currency' },
-    { key: 'valB', label: MESES_PT[mesB - 1], align: 'right', format: 'currency' },
-    { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
+    { key: 'valA', label: labelA, align: 'right', format: 'currency' },
+    { key: 'valB', label: labelB, align: 'right', format: 'currency' },
+    { key: 'variacao', label: 'Variação A→B', align: 'right', format: 'currency' },
     { key: 'varPercent', label: 'Var %', align: 'right', format: 'percent' },
   ];
 
@@ -135,35 +180,43 @@ export default function ComparacaoPage() {
       {mesesComReal.length > 0 && (
         <div className="glass-card p-5 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-sm font-semibold">Comparação: {MESES_PT[mesA - 1]} vs {MESES_PT[mesB - 1]}</h3>
+            <h3 className="text-sm font-semibold">Comparação: {labelA} vs {labelB}</h3>
             <div className="flex items-center gap-2 text-xs">
-              <label className="text-muted-foreground">Mês A:</label>
-              <select value={mesA} onChange={e => setMesA(Number(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
-                {MESES_PT.map((nome, i) => (
-                  <option key={i} value={i + 1}>{nome}{mesesComReal.includes(i + 1) ? ' ●' : ''}</option>
+              <label className="text-muted-foreground">Lado A:</label>
+              <select value={encodeOpt(selA)} onChange={e => setSelA(decodeOpt(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
+                {compOptions.map(o => (
+                  <option key={encodeOpt(o)} value={encodeOpt(o)}>{o.label}</option>
                 ))}
               </select>
-              <label className="text-muted-foreground">Mês B:</label>
-              <select value={mesB} onChange={e => setMesB(Number(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
-                {MESES_PT.map((nome, i) => (
-                  <option key={i} value={i + 1}>{nome}{mesesComReal.includes(i + 1) ? ' ●' : ''}</option>
+              <label className="text-muted-foreground">Lado B:</label>
+              <select value={encodeOpt(selB)} onChange={e => setSelB(decodeOpt(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
+                {compOptions.map(o => (
+                  <option key={encodeOpt(o)} value={encodeOpt(o)}>{o.label}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={Math.max(200, compTop10.length * 40)}>
-            <BarChart data={compTop10} layout="vertical" margin={{ left: marginLeft }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-              <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-              <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
-              <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="valA" name={MESES_PT[mesA - 1]} fill="hsl(175,70%,45%)" />
-              <Bar dataKey="valB" name={MESES_PT[mesB - 1]} fill="hsl(210,80%,60%)" />
-            </BarChart>
-          </ResponsiveContainer>
+          {isSameSelection ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Selecione períodos diferentes para comparar
+            </div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={Math.max(200, compTop10.length * 40)}>
+                <BarChart data={compTop10} layout="vertical" margin={{ left: marginLeft }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
+                  <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                  <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="valA" name={labelA} fill="hsl(175,70%,45%)" />
+                  <Bar dataKey="valB" name={labelB} fill="hsl(210,80%,60%)" />
+                </BarChart>
+              </ResponsiveContainer>
 
-          <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${MESES_PT[mesA-1]}-vs-${MESES_PT[mesB-1]}.csv`} maxHeight="300px" />
+              <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${labelA}-vs-${labelB}.csv`} maxHeight="300px" />
+            </>
+          )}
         </div>
       )}
 
