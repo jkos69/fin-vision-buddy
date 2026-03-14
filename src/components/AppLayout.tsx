@@ -1,7 +1,8 @@
 import { type ReactNode, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2 } from 'lucide-react';
+import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2 } from 'lucide-react';
 import { useOPEX } from '@/contexts/OPEXContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { getMesesComReal } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { SearchCommand } from '@/components/SearchCommand';
@@ -17,7 +18,8 @@ const navItems = [
 ];
 
 function SidebarContent() {
-  const { hasData, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado } = useOPEX();
+  const { hasData, loading, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado } = useOPEX();
+  const { session, logout } = useAuth();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const lastMonth = mesesComReal.length > 0 ? MESES_PT[mesesComReal[mesesComReal.length - 1] - 1] : '';
 
@@ -28,11 +30,21 @@ function SidebarContent() {
           <span className="text-primary">OPEX</span> Control
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">Controle Orçamentário 2026</p>
+        {session && (
+          <p className="text-xs text-primary/80 mt-1 truncate">Olá, {session.nomeDisplay}</p>
+        )}
       </div>
 
       {hasData && (
         <div className="mb-4">
           <SearchCommand />
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Carregando dados...
         </div>
       )}
 
@@ -139,6 +151,14 @@ function SidebarContent() {
             Limpar dados
           </button>
         )}
+
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors w-full text-left"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sair
+        </button>
       </div>
     </>
   );

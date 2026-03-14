@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { OPEXRecord } from '@/types/opex';
+import { supabase } from '@/integrations/supabase/client';
 
 type PeriodoView = 'ytd' | 'anual' | 'mensal';
 
@@ -8,6 +9,7 @@ interface OPEXContextType {
   setRecords: (records: OPEXRecord[]) => void;
   clearRecords: () => void;
   hasData: boolean;
+  loading: boolean;
   tipoFilter: 'all' | 'Opex sem Folha' | 'Folha Total';
   setTipoFilter: (f: 'all' | 'Opex sem Folha' | 'Folha Total') => void;
   filteredRecords: OPEXRecord[];
@@ -15,62 +17,114 @@ interface OPEXContextType {
   setPeriodoView: (p: PeriodoView) => void;
   mesSelecionado: number | null;
   setMesSelecionado: (m: number | null) => void;
+  reloadFromDB: () => Promise<void>;
 }
 
 const OPEXContext = createContext<OPEXContextType | null>(null);
 
+function mapDbToRecord(row: any): OPEXRecord {
+  return {
+    base: row.base as OPEXRecord['base'],
+    centroCusto: row.centro_custo || '',
+    descricaoCCusto: row.descricao_ccusto || '',
+    areaGrupo1: row.area_grupo1 || '',
+    diretoria: row.diretoria || '',
+    responsavelArea: row.responsavel_area || '',
+    contaContabil: row.conta_contabil || '',
+    descricaoConta: row.descricao_conta || '',
+    recurso: row.recurso || '',
+    pacote: row.pacote || '',
+    debito: Number(row.debito) || 0,
+    credito: Number(row.credito) || 0,
+    executado: Number(row.executado) || 0,
+    mes: Number(row.mes),
+    tipo: row.tipo || '',
+    dataLcto: row.data_lcto || '',
+    numeroLote: row.numero_lote || '',
+    historico: row.historico || '',
+    nomeFornecedor: row.nome_fornecedor || '',
+    descPedido: row.desc_pedido || '',
+    fornecedorGerencial: row.fornecedor_gerencial || '',
+  };
+}
+
 export function OPEXProvider({ children }: { children: ReactNode }) {
-  const [records, setRecordsState] = useState<OPEXRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem('opex-data');
-      if (!saved) return [];
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed) || parsed.length === 0) return [];
-      if (!parsed[0].base || !parsed[0].mes) {
-        localStorage.removeItem('opex-data');
-        return [];
-      }
-      return parsed;
-    } catch {
-      localStorage.removeItem('opex-data');
-      return [];
-    }
-  });
+  const [records, setRecordsState] = useState<OPEXRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tipoFilter, setTipoFilter] = useState<'all' | 'Opex sem Folha' | 'Folha Total'>('all');
   const [periodoView, setPeriodoView] = useState<PeriodoView>('ytd');
   const [mesSelecionado, setMesSelecionado] = useState<number | null>(null);
 
-  const setRecords = useCallback((recs: OPEXRecord[]) => {
-    console.log('[OPEX] Setting records:', recs.length,
-      'REAL meses:', [...new Set(recs.filter(r => r.base === 'REAL26').map(r => r.mes))].sort());
-
-    const dataStr = JSON.stringify(recs);
-    const sizeInMB = new Blob([dataStr]).size / (1024 * 1024);
-
-    if (sizeInMB > 50) {
-      throw new Error(`Dataset muito grande (${sizeInMB.toFixed(1)}MB). Máximo: 50MB.`);
-    }
-
-    setRecordsState(recs);
+  const reloadFromDB = useCallback(async () => {
+    setLoading(true);
     try {
-      localStorage.setItem('opex-data', dataStr);
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-        localStorage.removeItem('opex-data');
-        console.warn('localStorage quota exceeded, data kept in memory only.');
+      // Fetch in pages to handle >1000 rows
+      let allRows: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('opex_records')
+          .select('*')
+          .order('id')
+          .range(from, from + pageSize - 1);
+
+        if (error) {
+          console.error('[OPEX] DB load error:', error);
+          break;
+        }
+
+        if (data && data.length > 0) {
+          allRows = allRows.concat(data);
+          from += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
       }
+
+      const mapped = allRows.map(mapDbToRecord);
+      console.log('[OPEX] Loaded from DB:', mapped.length, 'records',
+        'REAL meses:', [...new Set(mapped.filter(r => r.base === 'REAL26').map(r => r.mes))].sort());
+      setRecordsState(mapped);
+    } catch (e) {
+      console.error('[OPEX] Failed to load from DB:', e);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const clearRecords = useCallback(() => {
+  useEffect(() => {
+    reloadFromDB();
+  }, [reloadFromDB]);
+
+  const setRecords = useCallback((recs: OPEXRecord[]) => {
+    console.log('[OPEX] Setting records:', recs.length,
+      'REAL meses:', [...new Set(recs.filter(r => r.base === 'REAL26').map(r => r.mes))].sort());
+    setRecordsState(recs);
+  }, []);
+
+  const clearRecords = useCallback(async () => {
     setRecordsState([]);
-    localStorage.removeItem('opex-data');
+    try {
+      await supabase.from('opex_records').delete().gt('id', 0);
+      await supabase.from('opex_uploads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch (e) {
+      console.error('[OPEX] Failed to clear DB:', e);
+    }
   }, []);
 
   const filteredRecords = tipoFilter === 'all' ? records : records.filter(r => r.tipo === tipoFilter);
 
   return (
-    <OPEXContext.Provider value={{ records, setRecords, clearRecords, hasData: records.length > 0, tipoFilter, setTipoFilter, filteredRecords, periodoView, setPeriodoView, mesSelecionado, setMesSelecionado }}>
+    <OPEXContext.Provider value={{
+      records, setRecords, clearRecords, hasData: records.length > 0, loading,
+      tipoFilter, setTipoFilter, filteredRecords,
+      periodoView, setPeriodoView, mesSelecionado, setMesSelecionado,
+      reloadFromDB,
+    }}>
       {children}
     </OPEXContext.Provider>
   );
