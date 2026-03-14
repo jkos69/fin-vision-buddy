@@ -7,33 +7,18 @@ import { Building2, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';
+import { ChartTooltip } from '@/components/ChartTooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
   const colors = { green: 'bg-success', yellow: 'bg-warning', red: 'bg-destructive' };
   return <span className={`inline-block h-2.5 w-2.5 rounded-full ${colors[status]}`} />;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload) return null;
-  const orc = payload.find((p: any) => p.name === 'Orçado');
-  const real = payload.find((p: any) => p.name === 'Realizado');
-  const variacao = orc && real ? real.value - orc.value : null;
-  return (
-    <div className="glass-card p-3 text-xs space-y-1">
-      <p className="font-semibold">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }}>{p.name}: {formatCurrency(p.value)}</p>
-      ))}
-      {variacao !== null && (
-        <p className={variacao > 0 ? 'text-destructive' : 'text-success'}>Variação: {formatCurrency(variacao)}</p>
-      )}
-    </div>
-  );
-};
-
 export default function AreasPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const { isCEO, isDiretoria, isArea, session } = useAuth();
+  const isMobile = useIsMobile();
 
   const [selectedDiretoria, setSelectedDiretoria] = useState<string | null>(
     isDiretoria || isArea ? session?.diretoria || null : null
@@ -60,6 +45,7 @@ export default function AreasPage() {
   const realLabel = isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
 
   const pageTitle = isCEO ? 'Por Diretoria / Área' : isDiretoria ? 'Minhas Áreas' : 'Minha Área';
+  const marginLeft = isMobile ? 100 : 180;
 
   const areaColumns: ColumnDef[] = [
     { key: 'nome', label: 'Área', align: 'left' },
@@ -157,7 +143,7 @@ export default function AreasPage() {
         </div>
       )}
 
-      {/* Level 2: Áreas table — CEO+Diretoria (when diretoria selected, area not) */}
+      {/* Level 2: Áreas table */}
       {selectedDiretoria && !selectedArea && (isCEO || isDiretoria) && (
         <SortableTable
           columns={areaColumns}
@@ -173,11 +159,11 @@ export default function AreasPage() {
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold mb-4">Composição por Pacote — {selectedArea}</h3>
             <ResponsiveContainer width="100%" height={Math.max(200, pacoteData.length * 40)}>
-              <BarChart data={pacoteData} layout="vertical" margin={{ left: 180 }}>
+              <BarChart data={pacoteData} layout="vertical" margin={{ left: marginLeft }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
                 <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={175} />
-                <Tooltip content={<CustomTooltip />} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+                <Tooltip content={<ChartTooltip />} />
                 <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" opacity={0.4} />
                 <Bar dataKey="realizado" name="Realizado" fill="hsl(210,80%,60%)" />
               </BarChart>

@@ -6,27 +6,18 @@ import { MESES_PT } from '@/types/opex';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, ReferenceLine, Cell } from 'recharts';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';
+import { ChartTooltip } from '@/components/ChartTooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
   const map = { green: '🟢', yellow: '🟡', red: '🔴' };
   return <span>{map[status]}</span>;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload) return null;
-  return (
-    <div className="glass-card p-3 text-xs space-y-1">
-      <p className="font-semibold">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }}>{p.name}: {formatCurrency(p.value)}</p>
-      ))}
-    </div>
-  );
-};
-
 export default function ComparacaoPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const { isCEO, isDiretoria } = useAuth();
+  const isMobile = useIsMobile();
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
   const mesesComReal = getMesesComReal(filteredRecords);
   const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
@@ -44,6 +35,32 @@ export default function ComparacaoPage() {
     nome: p.nome.replace('PACOTE ', ''),
     variacao: p.variacao,
   }));
+
+  // Month comparison
+  const [mesA, setMesA] = useState<number>(mesesComReal[0] || 1);
+  const [mesB, setMesB] = useState<number>(mesesComReal[mesesComReal.length - 1] || (mesesComReal[0] || 1));
+
+  const compField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
+  const compDataA = groupBy(filteredRecords.filter(r => r.mes === mesA), compField as keyof typeof filteredRecords[0], [mesA], 'mensal', mesA);
+  const compDataB = groupBy(filteredRecords.filter(r => r.mes === mesB), compField as keyof typeof filteredRecords[0], [mesB], 'mensal', mesB);
+
+  const compMerged = [...new Set([...compDataA.map(d => d.nome), ...compDataB.map(d => d.nome)])].map(nome => {
+    const a = compDataA.find(d => d.nome === nome);
+    const b = compDataB.find(d => d.nome === nome);
+    const valA = a ? (a.realizado || a.orcado) : 0;
+    const valB = b ? (b.realizado || b.orcado) : 0;
+    return { nome, valA, valB, variacao: valB - valA, varPercent: valA !== 0 ? ((valB - valA) / valA) * 100 : 0 };
+  }).filter(d => d.valA !== 0 || d.valB !== 0);
+
+  const compTop10 = [...compMerged].sort((a, b) => Math.max(Math.abs(b.valA), Math.abs(b.valB)) - Math.max(Math.abs(a.valA), Math.abs(a.valB))).slice(0, 10);
+
+  const compColumns: ColumnDef[] = [
+    { key: 'nome', label: isCEO || isDiretoria ? 'Área' : 'Recurso', align: 'left' },
+    { key: 'valA', label: MESES_PT[mesA - 1], align: 'right', format: 'currency' },
+    { key: 'valB', label: MESES_PT[mesB - 1], align: 'right', format: 'currency' },
+    { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
+    { key: 'varPercent', label: 'Var %', align: 'right', format: 'percent' },
+  ];
 
   // Accumulated evolution
   let accOrcado = 0;
@@ -87,6 +104,8 @@ export default function ComparacaoPage() {
     setDetailModal({ open: true, records: recs, title: `${semaforoLabel}: ${nome}` });
   };
 
+  const marginLeft = isMobile ? 100 : 140;
+
   return (
     <div className="space-y-6">
       <div>
@@ -112,16 +131,52 @@ export default function ComparacaoPage() {
         </div>
       )}
 
+      {/* Month comparison */}
+      {mesesComReal.length > 0 && (
+        <div className="glass-card p-5 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-sm font-semibold">Comparação: {MESES_PT[mesA - 1]} vs {MESES_PT[mesB - 1]}</h3>
+            <div className="flex items-center gap-2 text-xs">
+              <label className="text-muted-foreground">Mês A:</label>
+              <select value={mesA} onChange={e => setMesA(Number(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
+                {MESES_PT.map((nome, i) => (
+                  <option key={i} value={i + 1}>{nome}{mesesComReal.includes(i + 1) ? ' ●' : ''}</option>
+                ))}
+              </select>
+              <label className="text-muted-foreground">Mês B:</label>
+              <select value={mesB} onChange={e => setMesB(Number(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
+                {MESES_PT.map((nome, i) => (
+                  <option key={i} value={i + 1}>{nome}{mesesComReal.includes(i + 1) ? ' ●' : ''}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={Math.max(200, compTop10.length * 40)}>
+            <BarChart data={compTop10} layout="vertical" margin={{ left: marginLeft }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
+              <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+              <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="valA" name={MESES_PT[mesA - 1]} fill="hsl(175,70%,45%)" />
+              <Bar dataKey="valB" name={MESES_PT[mesB - 1]} fill="hsl(210,80%,60%)" />
+            </BarChart>
+          </ResponsiveContainer>
+
+          <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${MESES_PT[mesA-1]}-vs-${MESES_PT[mesB-1]}.csv`} maxHeight="300px" />
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Waterfall */}
         <div className="glass-card p-5 space-y-4">
           <h3 className="text-sm font-semibold">Variação por Pacote (Waterfall)</h3>
           <ResponsiveContainer width="100%" height={Math.max(250, waterfallData.length * 32)}>
-            <BarChart data={waterfallData} layout="vertical" margin={{ left: 140 }}>
+            <BarChart data={waterfallData} layout="vertical" margin={{ left: marginLeft }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
               <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-              <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={135} />
-              <Tooltip content={<CustomTooltip />} />
+              <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+              <Tooltip content={<ChartTooltip />} />
               <ReferenceLine x={0} stroke="hsl(220,20%,25%)" />
               <Bar dataKey="variacao" name="Variação">
                 {waterfallData.map((d, i) => (
@@ -141,7 +196,7 @@ export default function ComparacaoPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
               <XAxis dataKey="mesNome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} />
               <YAxis tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip />} />
               <Line type="monotone" dataKey="orcadoAcc" name="Orçado Acum." stroke="hsl(175,70%,45%)" strokeWidth={2} />
               <Line type="monotone" dataKey="realizadoAcc" name="Realizado Acum." stroke="hsl(210,80%,60%)" strokeWidth={2.5} dot={{ r: 4 }} connectNulls={false} />
               <Line type="monotone" dataKey="projecaoAcc" name="Projeção" stroke="hsl(38,92%,55%)" strokeWidth={1.5} strokeDasharray="6 4" dot={false} />

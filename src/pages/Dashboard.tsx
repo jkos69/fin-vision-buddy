@@ -7,6 +7,7 @@ import { MESES_PT } from '@/types/opex';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Line, ComposedChart } from 'recharts';
 import { FileUpload } from '@/components/FileUpload';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
+import { ChartTooltip } from '@/components/ChartTooltip';
 
 const DONUT_COLORS = [
   'hsl(175, 70%, 45%)', 'hsl(210, 80%, 60%)', 'hsl(38, 92%, 55%)',
@@ -32,26 +33,6 @@ function SummaryCard({ title, value, subtitle, icon: Icon, variant, onClick }: {
     </div>
   );
 }
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload) return null;
-  const orcItem = payload.find((p: any) => p.name === 'Orçado');
-  const realItem = payload.find((p: any) => p.name === 'Realizado');
-  const variacao = orcItem && realItem ? realItem.value - orcItem.value : null;
-  return (
-    <div className="glass-card p-3 text-xs space-y-1">
-      <p className="font-semibold text-foreground">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }}>{p.name}: {formatCurrency(p.value)}</p>
-      ))}
-      {variacao !== null && (
-        <p className={variacao > 0 ? 'text-destructive' : 'text-success'}>
-          Variação: {formatCurrency(variacao)} ({orcItem.value ? formatPercent((variacao / orcItem.value) * 100) : '—'})
-        </p>
-      )}
-    </div>
-  );
-};
 
 export default function Dashboard() {
   const { filteredRecords, hasData, periodoView, mesSelecionado } = useOPEX();
@@ -83,18 +64,15 @@ export default function Dashboard() {
   const realLabel = isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
   const periodoLabel = isMensal ? `Mês: ${MESES_PT[mesSelecionado! - 1]}` : 'YTD';
 
-  // Dashboard subtitle
   const dashSubtitle = isCEO ? 'Visão geral OPEX 2026'
     : isDiretoria ? `OPEX 2026 — ${session?.diretoria || ''}`
     : `OPEX 2026 — ${session?.area || ''}`;
 
-  // Donut: adaptive by level
   const donutField = isCEO ? 'diretoria' : isDiretoria ? 'areaGrupo1' : 'pacote';
   const donutTitle = isCEO ? 'Orçado Anual por Diretoria' : isDiretoria ? 'Orçado Anual por Área' : 'Orçado Anual por Pacote';
   const allMeses = [1,2,3,4,5,6,7,8,9,10,11,12];
   const donutData = groupBy(filteredRecords.filter(r => r.base === 'ORÇ26'), donutField as keyof typeof filteredRecords[0], allMeses, 'ytd');
 
-  // Accumulated data
   let accOrcado = 0;
   let accReal = 0;
   const accData = monthlyData.map(m => {
@@ -109,13 +87,11 @@ export default function Dashboard() {
 
   const varVariant = summary.variacao > 0 ? 'danger' : 'success';
 
-  // Alerts
   const alertField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
   const alertLabel = isCEO || isDiretoria ? 'área(s)' : 'recurso(s)';
   const alertData = groupBy(filteredRecords, alertField as keyof typeof filteredRecords[0], mesesComReal, periodoView, mesSelecionado)
     .filter(a => Math.abs(a.variacaoPercent) > 20 && (a.orcado > 0 || a.realizado > 0));
 
-  // Top variations
   const varField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
   const varTitle = isCEO || isDiretoria ? 'Maiores Variações por Área' : 'Maiores Variações por Recurso';
   const varData = groupBy(filteredRecords, varField as keyof typeof filteredRecords[0], mesesComReal, periodoView, mesSelecionado)
@@ -144,7 +120,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Alert: no real data for selected month */}
       {isMensal && !mesTemReal && (
         <div className="glass-card p-3 border-warning/30 flex items-center gap-2 text-xs text-warning">
           <AlertTriangle className="h-4 w-4" />
@@ -152,7 +127,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Contextual alerts */}
       {alertData.length > 0 && (
         <div className="glass-card p-4 border-warning/30">
           <p className="text-xs text-warning font-medium">
@@ -162,9 +136,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Summary Cards */}
       {isMensal ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <SummaryCard title={orcLabel} value={formatCompact(summary.orcadoYTD)} icon={Target} />
           <SummaryCard title={realLabel} value={mesTemReal ? formatCompact(summary.realizadoYTD) : '—'} icon={DollarSign} />
           <SummaryCard
@@ -180,7 +153,7 @@ export default function Dashboard() {
           />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
           <SummaryCard title="Orçado YTD" value={formatCompact(summary.orcadoYTD)} icon={Target} />
           <SummaryCard title="Realizado YTD" value={formatCompact(summary.realizadoYTD)} icon={DollarSign} />
           <SummaryCard
@@ -198,7 +171,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="glass-card p-5 lg:col-span-2">
           <h3 className="text-sm font-semibold mb-4">Orçado vs Realizado — Mensal + Acumulado</h3>
@@ -207,7 +179,7 @@ export default function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
               <XAxis dataKey="mesNome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} />
               <YAxis tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" radius={[3, 3, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.15) : 0.4} />
@@ -244,7 +216,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Top Variations */}
       {(topPositive.length > 0 || topNegative.length > 0) && (
         <div className="grid gap-6 lg:grid-cols-2">
           {topPositive.length > 0 && (

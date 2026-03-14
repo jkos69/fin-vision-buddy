@@ -7,28 +7,13 @@ import { Package, ChevronRight, LayoutGrid, Table2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from 'recharts';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload) return null;
-  const orc = payload.find((p: any) => p.name === 'Orçado');
-  const real = payload.find((p: any) => p.name === 'Realizado');
-  const variacao = orc && real ? real.value - orc.value : null;
-  return (
-    <div className="glass-card p-3 text-xs space-y-1">
-      <p className="font-semibold">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }}>{p.name}: {formatCurrency(p.value)}</p>
-      ))}
-      {variacao !== null && (
-        <p className={variacao > 0 ? 'text-destructive' : 'text-success'}>Variação: {formatCurrency(variacao)}</p>
-      )}
-    </div>
-  );
-};
+import { ChartTooltip } from '@/components/ChartTooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function PacotesPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const { isArea } = useAuth();
+  const isMobile = useIsMobile();
   const [selectedPacote, setSelectedPacote] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
@@ -39,6 +24,7 @@ export default function PacotesPage() {
   const isMensal = periodoView === 'mensal' && mesSelecionado;
   const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
   const realLabel = isMensal ? `Realizado ${MESES_PT[mesSelecionado! - 1]}` : 'Realizado YTD';
+  const marginLeft = isMobile ? 100 : 160;
 
   const drillRecords = selectedPacote ? filteredRecords.filter(r => r.pacote === selectedPacote) : [];
   const areaBreakdown = selectedPacote ? groupBy(drillRecords, 'areaGrupo1', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
@@ -145,11 +131,11 @@ export default function PacotesPage() {
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold mb-4">Contribuição por Área</h3>
             <ResponsiveContainer width="100%" height={Math.max(200, areaBreakdown.length * 35)}>
-              <BarChart data={areaBreakdown} layout="vertical" margin={{ left: 160 }}>
+              <BarChart data={areaBreakdown} layout="vertical" margin={{ left: marginLeft }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
                 <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={155} />
-                <Tooltip content={<CustomTooltip />} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+                <Tooltip content={<ChartTooltip />} />
                 <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" opacity={0.4} />
                 <Bar dataKey="realizado" name="Realizado" fill="hsl(210,80%,60%)" />
               </BarChart>
@@ -163,7 +149,7 @@ export default function PacotesPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
                 <XAxis dataKey="mesNome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} />
                 <YAxis tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<ChartTooltip />} />
                 <Line type="monotone" dataKey="orcado" name="Orçado" stroke="hsl(175,70%,45%)" strokeWidth={2} strokeDasharray="5 3" />
                 <Line type="monotone" dataKey="realizado" name="Realizado" stroke="hsl(210,80%,60%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
               </LineChart>
