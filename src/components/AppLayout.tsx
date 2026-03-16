@@ -156,6 +156,14 @@ function SidebarContent() {
         )}
 
         <button
+          onClick={toggleTheme}
+          className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors w-full text-left"
+        >
+          {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          {theme === 'dark' ? 'Tema Claro' : 'Tema Escuro'}
+        </button>
+
+        <button
           onClick={logout}
           className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors w-full text-left"
         >
