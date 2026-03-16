@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2 } from 'lucide-react';
+import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2, Sun, Moon } from 'lucide-react';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMesesComReal } from '@/lib/opex-utils';
