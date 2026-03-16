@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lock, LogIn, AlertCircle } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Lock, LogIn, AlertCircle, Sun, Moon } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative">
+      <button onClick={toggleTheme} className="absolute top-4 right-4 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </button>
+
       <div className="glass-card p-8 w-full max-w-sm space-y-6">
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">
