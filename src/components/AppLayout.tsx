@@ -8,6 +8,7 @@ import { MESES_PT } from '@/types/opex';
 import { SearchCommand } from '@/components/SearchCommand';
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTheme } from '@/contexts/ThemeContext';
 
 function SidebarContent() {
   const { hasData, loading, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado } = useOPEX();
