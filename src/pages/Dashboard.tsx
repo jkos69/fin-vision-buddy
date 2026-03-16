@@ -2,18 +2,14 @@ import { TrendingDown, TrendingUp, DollarSign, Target, Calendar, Activity, Alert
 import { useNavigate } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getSummary, getMonthlyData, groupBy, getMesesComReal, formatCurrency, formatPercent, formatCompact } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Line, ComposedChart } from 'recharts';
 import { FileUpload } from '@/components/FileUpload';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ChartTooltip } from '@/components/ChartTooltip';
-
-const DONUT_COLORS = [
-  'hsl(175, 70%, 45%)', 'hsl(210, 80%, 60%)', 'hsl(38, 92%, 55%)',
-  'hsl(280, 60%, 55%)', 'hsl(152, 60%, 42%)', 'hsl(0, 72%, 55%)',
-  'hsl(320, 60%, 50%)', 'hsl(45, 80%, 50%)', 'hsl(190, 70%, 50%)',
-];
+import { getChartColors, DONUT_COLORS_DARK, DONUT_COLORS_LIGHT } from '@/lib/chart-colors';
 
 function SummaryCard({ title, value, subtitle, icon: Icon, variant, onClick }: {
   title: string; value: string; subtitle?: string; icon: any; variant?: 'default' | 'success' | 'danger'; onClick?: () => void;
@@ -37,6 +33,9 @@ function SummaryCard({ title, value, subtitle, icon: Icon, variant, onClick }: {
 export default function Dashboard() {
   const { filteredRecords, hasData, periodoView, mesSelecionado } = useOPEX();
   const { isCEO, isDiretoria, isArea, session } = useAuth();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
+  const DONUT_COLORS = theme === 'dark' ? DONUT_COLORS_DARK : DONUT_COLORS_LIGHT;
   const navigate = useNavigate();
 
   if (!hasData) {
@@ -176,22 +175,22 @@ export default function Dashboard() {
           <h3 className="text-sm font-semibold mb-4">Orçado vs Realizado — Mensal + Acumulado</h3>
           <ResponsiveContainer width="100%" height={320}>
             <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-              <XAxis dataKey="mesNome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} />
-              <YAxis tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
+              <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+              <XAxis dataKey="mesNome" tick={{ fill: colors.axis, fontSize: 11 }} />
+              <YAxis tick={{ fill: colors.axis, fontSize: 11 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
               <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" radius={[3, 3, 0, 0]}>
+              <Bar dataKey="orcado" name="Orçado" fill={colors.orcado} radius={[3, 3, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.15) : 0.4} />
                 ))}
               </Bar>
-              <Bar dataKey="realizado" name="Realizado" fill="hsl(210,80%,60%)" radius={[3, 3, 0, 0]}>
+              <Bar dataKey="realizado" name="Realizado" fill={colors.realizado} radius={[3, 3, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.15) : 1} />
                 ))}
               </Bar>
-              <Line type="monotone" dataKey="accOrcado" name="Acum. Orçado" stroke="hsl(175,70%,45%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
-              <Line type="monotone" dataKey="accReal" name="Acum. Realizado" stroke="hsl(210,80%,60%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+              <Line type="monotone" dataKey="accOrcado" name="Acum. Orçado" stroke={colors.orcado} strokeWidth={2} dot={false} strokeDasharray="5 3" />
+              <Line type="monotone" dataKey="accReal" name="Acum. Realizado" stroke={colors.realizado} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

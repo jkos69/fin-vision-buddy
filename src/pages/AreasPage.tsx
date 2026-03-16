@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { Building2, ChevronRight } from 'lucide-react';
@@ -10,15 +11,18 @@ import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';
 import { ChartTooltip } from '@/components/ChartTooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getChartColors } from '@/lib/chart-colors';
 
 function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
-  const colors = { green: 'bg-success', yellow: 'bg-warning', red: 'bg-destructive' };
-  return <span className={`inline-block h-2.5 w-2.5 rounded-full ${colors[status]}`} />;
+  const c = { green: 'bg-success', yellow: 'bg-warning', red: 'bg-destructive' };
+  return <span className={`inline-block h-2.5 w-2.5 rounded-full ${c[status]}`} />;
 }
 
 export default function AreasPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const { isCEO, isDiretoria, isArea, session } = useAuth();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   const isMobile = useIsMobile();
 
   const [selectedDiretoria, setSelectedDiretoria] = useState<string | null>(
@@ -185,12 +189,12 @@ export default function AreasPage() {
             <h3 className="text-sm font-semibold mb-4">Composição por Pacote — {selectedArea}</h3>
             <ResponsiveContainer width="100%" height={Math.max(200, pacoteData.length * 40)}>
               <BarChart data={pacoteData} layout="vertical" margin={{ left: marginLeft }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-                <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+                <XAxis type="number" tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: colors.axis, fontSize: 10 }} width={marginLeft - 5} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" opacity={0.4} />
-                <Bar dataKey="realizado" name="Realizado" fill="hsl(210,80%,60%)" />
+                <Bar dataKey="orcado" name="Orçado" fill={colors.orcado} opacity={0.4} />
+                <Bar dataKey="realizado" name="Realizado" fill={colors.realizado} />
               </BarChart>
             </ResponsiveContainer>
           </div>

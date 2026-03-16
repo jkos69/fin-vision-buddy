@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2 } from 'lucide-react';
+import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2, Sun, Moon } from 'lucide-react';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMesesComReal } from '@/lib/opex-utils';
@@ -8,10 +8,12 @@ import { MESES_PT } from '@/types/opex';
 import { SearchCommand } from '@/components/SearchCommand';
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTheme } from '@/contexts/ThemeContext';
 
 function SidebarContent() {
   const { hasData, loading, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado } = useOPEX();
   const { session, logout, isCEO, isDiretoria, isArea } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const lastMonth = mesesComReal.length > 0 ? MESES_PT[mesesComReal[mesesComReal.length - 1] - 1] : '';
 
@@ -152,6 +154,14 @@ function SidebarContent() {
             Limpar dados
           </button>
         )}
+
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors w-full text-left"
+        >
+          {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          {theme === 'dark' ? 'Tema Claro' : 'Tema Escuro'}
+        </button>
 
         <button
           onClick={logout}

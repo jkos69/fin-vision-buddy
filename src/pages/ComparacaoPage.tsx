@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent, getSummary } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, ReferenceLine, Cell } from 'recharts';
@@ -9,6 +10,7 @@ import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';
 import { ChartTooltip } from '@/components/ChartTooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getChartColors } from '@/lib/chart-colors';
 
 function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
   const map = { green: '🟢', yellow: '🟡', red: '🔴' };
@@ -18,6 +20,8 @@ function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
 export default function ComparacaoPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const { isCEO, isDiretoria } = useAuth();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   const isMobile = useIsMobile();
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,7 +57,7 @@ export default function ComparacaoPage() {
     variacao: p.variacao,
   }));
 
-  // Month comparison - each selector is mes+base combo
+  // Month comparison
   type CompSelection = { mes: number; base: string };
 
   const defaultA: CompSelection = mesesComReal.length >= 1
@@ -70,7 +74,6 @@ export default function ComparacaoPage() {
 
   const isSameSelection = selA.mes === selB.mes && selA.base === selB.base;
 
-  // Build options: "Jan Orçado", "Jan Realizado" (only if has real), etc.
   const compOptions: { mes: number; base: string; label: string }[] = MESES_PT.flatMap((nome, i) => {
     const mes = i + 1;
     const opts: { mes: number; base: string; label: string }[] = [{ mes, base: 'ORÇ26', label: `${nome} Orçado` }];
@@ -88,11 +91,9 @@ export default function ComparacaoPage() {
 
   const compField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
 
-  // Filter records for each side independently by mes + base
   const recsA = filteredRecords.filter(r => r.mes === selA.mes && r.base === selA.base);
   const recsB = filteredRecords.filter(r => r.mes === selB.mes && r.base === selB.base);
 
-  // Group by field and sum executado
   const groupExec = (recs: typeof filteredRecords, field: string) => {
     const map = new Map<string, number>();
     recs.forEach(r => {
@@ -200,13 +201,13 @@ export default function ComparacaoPage() {
             <h3 className="text-sm font-semibold">Comparação: {labelA} vs {labelB}</h3>
             <div className="flex items-center gap-2 text-xs">
               <label className="text-muted-foreground">Lado A:</label>
-              <select value={encodeOpt(selA)} onChange={e => setSelA(decodeOpt(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
+              <select value={encodeOpt(selA)} onChange={e => setSelA(decodeOpt(e.target.value))} className="bg-muted text-foreground rounded px-2 py-1 text-xs outline-none">
                 {compOptions.map(o => (
                   <option key={encodeOpt(o)} value={encodeOpt(o)}>{o.label}</option>
                 ))}
               </select>
               <label className="text-muted-foreground">Lado B:</label>
-              <select value={encodeOpt(selB)} onChange={e => setSelB(decodeOpt(e.target.value))} className="bg-muted rounded px-2 py-1 text-xs outline-none">
+              <select value={encodeOpt(selB)} onChange={e => setSelB(decodeOpt(e.target.value))} className="bg-muted text-foreground rounded px-2 py-1 text-xs outline-none">
                 {compOptions.map(o => (
                   <option key={encodeOpt(o)} value={encodeOpt(o)}>{o.label}</option>
                 ))}
@@ -222,12 +223,12 @@ export default function ComparacaoPage() {
             <>
               <ResponsiveContainer width="100%" height={Math.max(200, compTop10.length * 40)}>
                 <BarChart data={compTop10} layout="vertical" margin={{ left: marginLeft }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-                  <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                  <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+                  <XAxis type="number" tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                  <YAxis type="category" dataKey="nome" tick={{ fill: colors.axis, fontSize: 10 }} width={marginLeft - 5} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="valA" name={labelA} fill="hsl(175,70%,45%)" />
-                  <Bar dataKey="valB" name={labelB} fill="hsl(210,80%,60%)" />
+                  <Bar dataKey="valA" name={labelA} fill={colors.orcado} />
+                  <Bar dataKey="valB" name={labelB} fill={colors.realizado} />
                 </BarChart>
               </ResponsiveContainer>
 
@@ -243,14 +244,14 @@ export default function ComparacaoPage() {
           <h3 className="text-sm font-semibold">Variação por Pacote (Waterfall)</h3>
           <ResponsiveContainer width="100%" height={Math.max(250, waterfallData.length * 32)}>
             <BarChart data={waterfallData} layout="vertical" margin={{ left: marginLeft }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-              <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-              <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+              <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+              <XAxis type="number" tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+              <YAxis type="category" dataKey="nome" tick={{ fill: colors.axis, fontSize: 10 }} width={marginLeft - 5} />
               <Tooltip content={<ChartTooltip />} />
-              <ReferenceLine x={0} stroke="hsl(220,20%,25%)" />
+              <ReferenceLine x={0} stroke={colors.reference} />
               <Bar dataKey="variacao" name="Variação">
                 {waterfallData.map((d, i) => (
-                  <Cell key={i} fill={d.variacao > 0 ? 'hsl(0,72%,55%)' : 'hsl(152,60%,42%)'} />
+                  <Cell key={i} fill={d.variacao > 0 ? colors.positive : colors.negative} />
                 ))}
               </Bar>
             </BarChart>
@@ -263,13 +264,13 @@ export default function ComparacaoPage() {
           <h3 className="text-sm font-semibold mb-4">Evolução Acumulada</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={accData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-              <XAxis dataKey="mesNome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} />
-              <YAxis tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
+              <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+              <XAxis dataKey="mesNome" tick={{ fill: colors.axis, fontSize: 11 }} />
+              <YAxis tick={{ fill: colors.axis, fontSize: 11 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
               <Tooltip content={<ChartTooltip />} />
-              <Line type="monotone" dataKey="orcadoAcc" name="Orçado Acum." stroke="hsl(175,70%,45%)" strokeWidth={2} />
-              <Line type="monotone" dataKey="realizadoAcc" name="Realizado Acum." stroke="hsl(210,80%,60%)" strokeWidth={2.5} dot={{ r: 4 }} connectNulls={false} />
-              <Line type="monotone" dataKey="projecaoAcc" name="Projeção" stroke="hsl(38,92%,55%)" strokeWidth={1.5} strokeDasharray="6 4" dot={false} />
+              <Line type="monotone" dataKey="orcadoAcc" name="Orçado Acum." stroke={colors.orcado} strokeWidth={2} />
+              <Line type="monotone" dataKey="realizadoAcc" name="Realizado Acum." stroke={colors.realizado} strokeWidth={2.5} dot={{ r: 4 }} connectNulls={false} />
+              <Line type="monotone" dataKey="projecaoAcc" name="Projeção" stroke={colors.warning} strokeWidth={1.5} strokeDasharray="6 4" dot={false} />
             </LineChart>
           </ResponsiveContainer>
           <div className="mt-3 p-3 rounded-md bg-muted/50 text-xs">

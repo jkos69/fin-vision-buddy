@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { Package, ChevronRight, LayoutGrid, Table2 } from 'lucide-react';
@@ -10,10 +11,13 @@ import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';
 import { ChartTooltip } from '@/components/ChartTooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getChartColors } from '@/lib/chart-colors';
 
 export default function PacotesPage() {
   const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
   const { isArea } = useAuth();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   const isMobile = useIsMobile();
   const [selectedPacote, setSelectedPacote] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -142,12 +146,12 @@ export default function PacotesPage() {
             <h3 className="text-sm font-semibold mb-4">Contribuição por Área</h3>
             <ResponsiveContainer width="100%" height={Math.max(200, areaBreakdown.length * 35)}>
               <BarChart data={areaBreakdown} layout="vertical" margin={{ left: marginLeft }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-                <XAxis type="number" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                <YAxis type="category" dataKey="nome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 10 }} width={marginLeft - 5} />
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+                <XAxis type="number" tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: colors.axis, fontSize: 10 }} width={marginLeft - 5} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="orcado" name="Orçado" fill="hsl(175,70%,45%)" opacity={0.4} />
-                <Bar dataKey="realizado" name="Realizado" fill="hsl(210,80%,60%)" />
+                <Bar dataKey="orcado" name="Orçado" fill={colors.orcado} opacity={0.4} />
+                <Bar dataKey="realizado" name="Realizado" fill={colors.realizado} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -156,12 +160,12 @@ export default function PacotesPage() {
             <h3 className="text-sm font-semibold mb-4">Evolução Mensal</h3>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={monthlyEvolution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,16%)" />
-                <XAxis dataKey="mesNome" tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} />
-                <YAxis tick={{ fill: 'hsl(215,15%,55%)', fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+                <XAxis dataKey="mesNome" tick={{ fill: colors.axis, fontSize: 11 }} />
+                <YAxis tick={{ fill: colors.axis, fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
                 <Tooltip content={<ChartTooltip />} />
-                <Line type="monotone" dataKey="orcado" name="Orçado" stroke="hsl(175,70%,45%)" strokeWidth={2} strokeDasharray="5 3" />
-                <Line type="monotone" dataKey="realizado" name="Realizado" stroke="hsl(210,80%,60%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+                <Line type="monotone" dataKey="orcado" name="Orçado" stroke={colors.orcado} strokeWidth={2} strokeDasharray="5 3" />
+                <Line type="monotone" dataKey="realizado" name="Realizado" stroke={colors.realizado} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

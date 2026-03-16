@@ -5,7 +5,61 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @layer base {
-  :root {
+  /* Light theme */
+  :root.light, .light {
+    --background: 0 0% 98%;
+    --foreground: 222 30% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 30% 12%;
+
+    --primary: 175 70% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 93%;
+    --secondary-foreground: 222 20% 30%;
+
+    --muted: 220 15% 95%;
+    --muted-foreground: 215 15% 45%;
+
+    --accent: 220 15% 93%;
+    --accent-foreground: 222 30% 12%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 175 70% 38%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 15% 96%;
+    --sidebar-foreground: 222 20% 30%;
+    --sidebar-primary: 175 70% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 91%;
+    --sidebar-accent-foreground: 222 30% 12%;
+    --sidebar-border: 220 15% 88%;
+    --sidebar-ring: 175 70% 38%;
+
+    --chart-orcado: 175 70% 38%;
+    --chart-realizado: 210 80% 50%;
+    --chart-variance-positive: 0 72% 50%;
+    --chart-variance-negative: 152 60% 36%;
+  }
+
+  /* Dark theme (default) */
+  :root.dark, .dark, :root:not(.light) {
     --background: 222 30% 6%;
     --foreground: 210 20% 90%;
 
@@ -82,8 +136,16 @@
     @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-lg;
   }
 
+  .light .glass-card {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
   .glow-primary {
     box-shadow: 0 0 20px -5px hsl(175 70% 45% / 0.2);
+  }
+
+  .light .glow-primary {
+    box-shadow: 0 0 20px -5px hsl(175 70% 38% / 0.15);
   }
 
   .status-green {
