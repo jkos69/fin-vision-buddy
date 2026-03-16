@@ -177,20 +177,32 @@ export default function Dashboard() {
             <ComposedChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
               <XAxis dataKey="mesNome" tick={{ fill: colors.axis, fontSize: 11 }} />
-              <YAxis tick={{ fill: colors.axis, fontSize: 11 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} />
+              <YAxis
+                yAxisId="mensal"
+                tick={{ fill: colors.axis, fontSize: 11 }}
+                tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`}
+                label={{ value: 'Mensal', angle: -90, position: 'insideLeft', style: { fill: colors.axis, fontSize: 10 } }}
+              />
+              <YAxis
+                yAxisId="acumulado"
+                orientation="right"
+                tick={{ fill: colors.axis, fontSize: 11 }}
+                tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`}
+                label={{ value: 'Acumulado', angle: 90, position: 'insideRight', style: { fill: colors.axis, fontSize: 10 } }}
+              />
               <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="orcado" name="Orçado" fill={colors.orcado} radius={[3, 3, 0, 0]}>
+              <Bar yAxisId="mensal" dataKey="orcado" name="Orçado" fill={colors.orcado} radius={[3, 3, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.15) : 0.4} />
                 ))}
               </Bar>
-              <Bar dataKey="realizado" name="Realizado" fill={colors.realizado} radius={[3, 3, 0, 0]}>
+              <Bar yAxisId="mensal" dataKey="realizado" name="Realizado" fill={colors.realizado} radius={[3, 3, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={index} opacity={isMensal ? (entry.isSelected ? 1 : 0.15) : 1} />
                 ))}
               </Bar>
-              <Line type="monotone" dataKey="accOrcado" name="Acum. Orçado" stroke={colors.orcado} strokeWidth={2} dot={false} strokeDasharray="5 3" />
-              <Line type="monotone" dataKey="accReal" name="Acum. Realizado" stroke={colors.realizado} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+              <Line yAxisId="acumulado" type="monotone" dataKey="accOrcado" name="Acum. Orçado" stroke={colors.orcado} strokeWidth={2} dot={false} strokeDasharray="5 3" />
+              <Line yAxisId="acumulado" type="monotone" dataKey="accReal" name="Acum. Realizado" stroke={colors.realizado} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
