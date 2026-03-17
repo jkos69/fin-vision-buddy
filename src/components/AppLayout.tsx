@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useTheme } from '@/contexts/ThemeContext';
 
 function SidebarContent() {
-  const { hasData, loading, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado } = useOPEX();
+  const { hasData, loading, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado, projecaoTipo, setProjecaoTipo, origemFilter, setOrigemFilter } = useOPEX();
   const { session, logout, isCEO, isDiretoria, isArea } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
