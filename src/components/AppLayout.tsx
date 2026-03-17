@@ -241,7 +241,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <SidebarContent />
               </div>
             </aside>
-            </aside>
           </>
         )}
 
