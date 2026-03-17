@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
-import type { OPEXRecord } from '@/types/opex';
+import type { OPEXRecord, ProjecaoTipo, OrigemFilter } from '@/types/opex';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -19,6 +19,10 @@ interface OPEXContextType {
   mesSelecionado: number | null;
   setMesSelecionado: (m: number | null) => void;
   reloadFromDB: () => Promise<void>;
+  projecaoTipo: ProjecaoTipo;
+  setProjecaoTipo: (p: ProjecaoTipo) => void;
+  origemFilter: OrigemFilter;
+  setOrigemFilter: (f: OrigemFilter) => void;
 }
 
 const OPEXContext = createContext<OPEXContextType | null>(null);
