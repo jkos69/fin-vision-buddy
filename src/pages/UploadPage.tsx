@@ -14,6 +14,7 @@ export default function UploadPage() {
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const orcCount = records.filter(r => r.base === 'ORÇ26').length;
   const realCount = records.filter(r => r.base === 'REAL26').length;
+  const missingOrigem = records.length > 0 && records.some(r => !r.origem);
 
   const [lastUpload, setLastUpload] = useState<any>(null);
 
