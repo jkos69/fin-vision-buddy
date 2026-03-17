@@ -254,8 +254,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border bg-sidebar p-4">
-        <SidebarContent />
+      <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border bg-sidebar">
+        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+          <SidebarContent />
+        </div>
       </aside>
       <main className="ml-64 flex-1 p-6">
         <div className="mx-auto max-w-7xl animate-fade-in">{children}</div>
