@@ -23,6 +23,7 @@ export type Database = {
           nome_display: string
           responsavel: string | null
           senha: string
+          senha_hash: string | null
           tipo: string
         }
         Insert: {
@@ -33,6 +34,7 @@ export type Database = {
           nome_display: string
           responsavel?: string | null
           senha: string
+          senha_hash?: string | null
           tipo: string
         }
         Update: {
@@ -43,6 +45,37 @@ export type Database = {
           nome_display?: string
           responsavel?: string | null
           senha?: string
+          senha_hash?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
+      active_sessions: {
+        Row: {
+          area: string | null
+          created_at: string | null
+          diretoria: string | null
+          expires_at: string | null
+          id: string
+          session_token: string
+          tipo: string
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string | null
+          diretoria?: string | null
+          expires_at?: string | null
+          id?: string
+          session_token: string
+          tipo: string
+        }
+        Update: {
+          area?: string | null
+          created_at?: string | null
+          diretoria?: string | null
+          expires_at?: string | null
+          id?: string
+          session_token?: string
           tipo?: string
         }
         Relationships: []
@@ -177,7 +210,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      clear_opex_data: { Args: { p_session_token: string }; Returns: boolean }
+      create_session: {
+        Args: { input_senha: string }
+        Returns: {
+          area: string
+          diretoria: string
+          nome_display: string
+          responsavel: string
+          session_token: string
+          tipo: string
+        }[]
+      }
+      insert_opex_batch: {
+        Args: { p_records: Json; p_session_token: string }
+        Returns: number
+      }
+      insert_opex_upload: {
+        Args: {
+          p_filename: string
+          p_meses_real: number[]
+          p_session_token: string
+          p_total_orcado: number
+          p_total_realizado: number
+          p_total_records: number
+          p_uploaded_by: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
