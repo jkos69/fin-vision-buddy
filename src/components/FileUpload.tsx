@@ -85,40 +85,46 @@ export function FileUpload() {
   }, []);
 
   const confirmUpload = useCallback(async () => {
-    if (!validation) return;
+    if (!validation || !session?.sessionToken) return;
     const records = validation.records;
     setStatus('uploading');
     setMessage('Limpando dados anteriores...');
     setProgress(0);
 
     try {
-      await supabase.from('opex_records').delete().gt('id', 0);
-      await supabase.from('opex_uploads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Clear old data via secure RPC
+      const { data: cleared, error: clearError } = await supabase.rpc('clear_opex_data', {
+        p_session_token: session.sessionToken,
+      });
+      if (clearError) throw new Error('Erro ao limpar dados: ' + clearError.message);
+      if (!cleared) throw new Error('Sem permissão para limpar dados');
 
       const totalOrcado = records.filter(r => r.base === 'ORÇ26').reduce((s, r) => s + r.executado, 0);
       const totalRealizado = records.filter(r => r.base === 'REAL26').reduce((s, r) => s + r.executado, 0);
 
-      const { data: uploadData, error: uploadError } = await supabase
-        .from('opex_uploads')
-        .insert({
-          uploaded_by: session?.nomeDisplay || 'unknown',
-          filename: fileName,
-          total_records: records.length,
-          meses_real: validation.mesesReal,
-          total_orcado: totalOrcado,
-          total_realizado: totalRealizado,
-        })
-        .select('id')
-        .single();
+      // Insert upload metadata via secure RPC
+      const { data: uploadId, error: uploadError } = await supabase.rpc('insert_opex_upload', {
+        p_session_token: session.sessionToken,
+        p_uploaded_by: session.nomeDisplay,
+        p_filename: fileName,
+        p_total_records: records.length,
+        p_meses_real: validation.mesesReal,
+        p_total_orcado: totalOrcado,
+        p_total_realizado: totalRealizado,
+      });
 
-      if (uploadError || !uploadData) throw new Error('Erro ao criar registro de upload');
+      if (uploadError || !uploadId) throw new Error('Erro ao criar registro de upload');
 
       const batchSize = 500;
       const total = records.length;
       for (let i = 0; i < total; i += batchSize) {
-        const batch = records.slice(i, i + batchSize).map(r => mapRecordToDb(r, uploadData.id));
-        const { error: insertError } = await supabase.from('opex_records').insert(batch);
+        const batch = records.slice(i, i + batchSize).map(r => mapRecordToDb(r, uploadId));
+        const { data: count, error: insertError } = await supabase.rpc('insert_opex_batch', {
+          p_session_token: session.sessionToken,
+          p_records: JSON.stringify(batch),
+        });
         if (insertError) throw new Error(`Erro ao inserir batch ${i}: ${insertError.message}`);
+        if (count === -1) throw new Error('Sem permissão para inserir dados');
 
         const sent = Math.min(i + batchSize, total);
         setProgress(Math.round((sent / total) * 100));

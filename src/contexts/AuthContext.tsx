@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UserSession {
-  senha: string;
+  sessionToken: string;
   tipo: 'ceo' | 'diretoria' | 'area';
   diretoria: string | null;
   area: string | null;
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const saved = sessionStorage.getItem(SESSION_KEY);
       if (!saved) return null;
       const parsed = JSON.parse(saved);
-      if (!parsed.senha || !parsed.tipo) return null;
+      if (!parsed.sessionToken || !parsed.tipo) return null;
       return parsed as UserSession;
     } catch {
       sessionStorage.removeItem(SESSION_KEY);
@@ -39,20 +39,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (senha: string): Promise<boolean> => {
     const { data, error } = await supabase
-      .from('access_passwords')
-      .select('*')
-      .eq('senha', senha.trim())
-      .single();
+      .rpc('create_session', { input_senha: senha.trim() });
 
-    if (error || !data) return false;
+    if (error || !data || data.length === 0) return false;
 
+    const row = data[0];
     const userSession: UserSession = {
-      senha: data.senha,
-      tipo: data.tipo as UserSession['tipo'],
-      diretoria: data.diretoria,
-      area: data.area,
-      responsavel: data.responsavel,
-      nomeDisplay: data.nome_display,
+      sessionToken: row.session_token,
+      tipo: row.tipo as UserSession['tipo'],
+      diretoria: row.diretoria,
+      area: row.area,
+      responsavel: row.responsavel,
+      nomeDisplay: row.nome_display,
     };
 
     setSession(userSession);
@@ -60,10 +58,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    if (session?.sessionToken) {
+      await supabase.rpc('destroy_session', { p_session_token: session.sessionToken }).catch(() => {});
+    }
     setSession(null);
     sessionStorage.removeItem(SESSION_KEY);
-  }, []);
+  }, [session]);
+
+  // Session expiry check every 5 minutes
+  useEffect(() => {
+    if (!session?.sessionToken) return;
+
+    const check = async () => {
+      const { data } = await supabase
+        .from('active_sessions')
+        .select('id')
+        .eq('session_token', session.sessionToken)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (!data) {
+        setSession(null);
+        sessionStorage.removeItem(SESSION_KEY);
+      }
+    };
+
+    const interval = setInterval(check, 5 * 60 * 1000);
+    check(); // Check immediately on mount
+    return () => clearInterval(interval);
+  }, [session?.sessionToken]);
 
   return (
     <AuthContext.Provider value={{
