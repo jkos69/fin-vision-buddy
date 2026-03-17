@@ -31,7 +31,7 @@ function SummaryCard({ title, value, subtitle, icon: Icon, variant, onClick }: {
 }
 
 export default function Dashboard() {
-  const { filteredRecords, hasData, periodoView, mesSelecionado } = useOPEX();
+  const { filteredRecords, hasData, periodoView, mesSelecionado, projecaoTipo } = useOPEX();
   const { isCEO, isDiretoria, isArea, session } = useAuth();
   const { theme } = useTheme();
   const colors = getChartColors(theme);
@@ -52,7 +52,7 @@ export default function Dashboard() {
     );
   }
 
-  const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
+  const summary = getSummary(filteredRecords, periodoView, mesSelecionado, projecaoTipo);
   const monthlyData = getMonthlyData(filteredRecords);
   const mesesComReal = getMesesComReal(filteredRecords);
 
@@ -147,7 +147,11 @@ export default function Dashboard() {
           />
           <SummaryCard
             title="Projeção Anual" value={formatCompact(summary.projecaoAnual)}
-            subtitle={summary.orcadoAnual > 0 ? `${((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1)}% do orçado` : undefined}
+            subtitle={
+              projecaoTipo === 'media' ? `Média: ${formatCompact(summary.realizadoYTD)} ÷ ${summary.mesesComReal.length} × 12`
+              : projecaoTipo === 'proporcional' ? `${summary.orcadoAnual > 0 ? ((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1) : 0}% do orçado (proporcional)`
+              : `Real acum. + orçado restante`
+            }
             icon={Activity} variant={summary.projecaoAnual > summary.orcadoAnual ? 'danger' : 'success'}
           />
         </div>
@@ -164,7 +168,11 @@ export default function Dashboard() {
           <SummaryCard title="Orçado Anual" value={formatCompact(summary.orcadoAnual)} icon={Target} onClick={() => navigate('/pacotes')} />
           <SummaryCard
             title="Projeção Anual" value={formatCompact(summary.projecaoAnual)}
-            subtitle={summary.orcadoAnual > 0 ? `${((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1)}% do orçado` : undefined}
+            subtitle={
+              projecaoTipo === 'media' ? `Média: ${formatCompact(summary.realizadoYTD)} ÷ ${summary.mesesComReal.length} × 12`
+              : projecaoTipo === 'proporcional' ? `${summary.orcadoAnual > 0 ? ((summary.projecaoAnual / summary.orcadoAnual) * 100).toFixed(1) : 0}% do orçado (proporcional)`
+              : `Real acum. + orçado restante`
+            }
             icon={Activity} variant={summary.projecaoAnual > summary.orcadoAnual ? 'danger' : 'success'}
           />
         </div>

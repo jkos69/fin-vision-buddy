@@ -1,0 +1,2 @@
+ALTER TABLE opex_records ADD COLUMN IF NOT EXISTS origem TEXT;
+ALTER TABLE opex_records ADD COLUMN IF NOT EXISTS descr_origem TEXT;

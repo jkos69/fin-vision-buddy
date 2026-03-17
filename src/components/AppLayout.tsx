@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useTheme } from '@/contexts/ThemeContext';
 
 function SidebarContent() {
-  const { hasData, loading, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado } = useOPEX();
+  const { hasData, loading, filteredRecords, tipoFilter, setTipoFilter, periodoView, setPeriodoView, clearRecords, mesSelecionado, setMesSelecionado, projecaoTipo, setProjecaoTipo, origemFilter, setOrigemFilter } = useOPEX();
   const { session, logout, isCEO, isDiretoria, isArea } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
@@ -131,6 +131,47 @@ function SidebarContent() {
                 className={`text-xs px-3 py-1.5 rounded-md text-left transition-colors ${tipoFilter === t ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
               >
                 {t === 'all' ? 'Todos' : t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Classificação (Custos/Despesas) */}
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground font-medium px-1">Classificação</p>
+          <div className="flex flex-col gap-1">
+            {([
+              { value: 'all' as const, label: 'Custos + Despesas' },
+              { value: 'DESPESAS' as const, label: 'Só Despesas' },
+              { value: 'CUSTOS' as const, label: 'Só Custos' },
+            ]).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setOrigemFilter(opt.value)}
+                className={`text-xs px-3 py-1.5 rounded-md text-left transition-colors ${origemFilter === opt.value ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Projeção */}
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground font-medium px-1">Projeção</p>
+          <div className="flex flex-col gap-1">
+            {([
+              { value: 'hibrida' as const, label: 'Híbrida', desc: 'Real + orçado restante' },
+              { value: 'proporcional' as const, label: 'Proporcional', desc: 'Desvio % aplicado ao ano' },
+              { value: 'media' as const, label: 'Média', desc: 'Média mensal × 12' },
+            ]).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setProjecaoTipo(opt.value)}
+                className={`text-xs px-3 py-1.5 rounded-md text-left transition-colors ${projecaoTipo === opt.value ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+                title={opt.desc}
+              >
+                {opt.label}
               </button>
             ))}
           </div>

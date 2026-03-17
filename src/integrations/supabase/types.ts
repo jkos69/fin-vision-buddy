@@ -57,6 +57,7 @@ export type Database = {
           data_lcto: string | null
           debito: number | null
           desc_pedido: string | null
+          descr_origem: string | null
           descricao_ccusto: string | null
           descricao_conta: string | null
           diretoria: string
@@ -67,6 +68,7 @@ export type Database = {
           mes: number
           nome_fornecedor: string | null
           numero_lote: string | null
+          origem: string | null
           pacote: string
           recurso: string
           responsavel_area: string | null
@@ -82,6 +84,7 @@ export type Database = {
           data_lcto?: string | null
           debito?: number | null
           desc_pedido?: string | null
+          descr_origem?: string | null
           descricao_ccusto?: string | null
           descricao_conta?: string | null
           diretoria: string
@@ -92,6 +95,7 @@ export type Database = {
           mes: number
           nome_fornecedor?: string | null
           numero_lote?: string | null
+          origem?: string | null
           pacote: string
           recurso: string
           responsavel_area?: string | null
@@ -107,6 +111,7 @@ export type Database = {
           data_lcto?: string | null
           debito?: number | null
           desc_pedido?: string | null
+          descr_origem?: string | null
           descricao_ccusto?: string | null
           descricao_conta?: string | null
           diretoria?: string
@@ -117,6 +122,7 @@ export type Database = {
           mes?: number
           nome_fornecedor?: string | null
           numero_lote?: string | null
+          origem?: string | null
           pacote?: string
           recurso?: string
           responsavel_area?: string | null

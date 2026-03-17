@@ -20,7 +20,12 @@ export interface OPEXRecord {
   nomeFornecedor: string;
   descPedido: string;
   fornecedorGerencial: string;
+  origem: string;
+  descrOrigem: string;
 }
+
+export type ProjecaoTipo = 'media' | 'proporcional' | 'hibrida';
+export type OrigemFilter = 'all' | 'CUSTOS' | 'DESPESAS';
 
 export interface MonthlyData {
   mes: number;

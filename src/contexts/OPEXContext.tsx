@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
-import type { OPEXRecord } from '@/types/opex';
+import type { OPEXRecord, ProjecaoTipo, OrigemFilter } from '@/types/opex';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -19,6 +19,10 @@ interface OPEXContextType {
   mesSelecionado: number | null;
   setMesSelecionado: (m: number | null) => void;
   reloadFromDB: () => Promise<void>;
+  projecaoTipo: ProjecaoTipo;
+  setProjecaoTipo: (p: ProjecaoTipo) => void;
+  origemFilter: OrigemFilter;
+  setOrigemFilter: (f: OrigemFilter) => void;
 }
 
 const OPEXContext = createContext<OPEXContextType | null>(null);
@@ -46,6 +50,8 @@ function mapDbToRecord(row: any): OPEXRecord {
     nomeFornecedor: row.nome_fornecedor || '',
     descPedido: row.desc_pedido || '',
     fornecedorGerencial: row.fornecedor_gerencial || '',
+    origem: row.origem || '',
+    descrOrigem: row.descr_origem || '',
   };
 }
 
@@ -55,6 +61,8 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
   const [tipoFilter, setTipoFilter] = useState<'all' | 'Opex sem Folha' | 'Folha Total'>('all');
   const [periodoView, setPeriodoView] = useState<PeriodoView>('ytd');
   const [mesSelecionado, setMesSelecionado] = useState<number | null>(null);
+  const [projecaoTipo, setProjecaoTipo] = useState<ProjecaoTipo>('hibrida');
+  const [origemFilter, setOrigemFilter] = useState<OrigemFilter>('all');
   const { session } = useAuth();
 
   const reloadFromDB = useCallback(async () => {
@@ -133,8 +141,12 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
       recs = recs.filter(r => r.tipo === tipoFilter);
     }
 
+    if (origemFilter !== 'all') {
+      recs = recs.filter(r => r.origem === origemFilter);
+    }
+
     return recs;
-  }, [records, session, tipoFilter]);
+  }, [records, session, tipoFilter, origemFilter]);
 
   return (
     <OPEXContext.Provider value={{
@@ -142,6 +154,8 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
       tipoFilter, setTipoFilter, filteredRecords,
       periodoView, setPeriodoView, mesSelecionado, setMesSelecionado,
       reloadFromDB,
+      projecaoTipo, setProjecaoTipo,
+      origemFilter, setOrigemFilter,
     }}>
       {children}
     </OPEXContext.Provider>

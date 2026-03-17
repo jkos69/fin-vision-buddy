@@ -18,7 +18,7 @@ function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
 }
 
 export default function ComparacaoPage() {
-  const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
+  const { filteredRecords, periodoView, mesSelecionado, projecaoTipo } = useOPEX();
   const { isCEO, isDiretoria } = useAuth();
   const { theme } = useTheme();
   const colors = getChartColors(theme);
@@ -41,7 +41,7 @@ export default function ComparacaoPage() {
     }
   }, [searchParams, filteredRecords]);
   const mesesComReal = getMesesComReal(filteredRecords);
-  const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
+  const summary = getSummary(filteredRecords, periodoView, mesSelecionado, projecaoTipo);
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
   const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';

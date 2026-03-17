@@ -99,6 +99,8 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
       descPedido: sanitizeString(row[28]),
       fornecedorGerencial: sanitizeString(row[30]),
       tipo: sanitizeString(row[34]),
+      origem: sanitizeString(row[3]),
+      descrOrigem: sanitizeString(row[4]),
     });
 
     if (records.length > MAX_RECORDS) {

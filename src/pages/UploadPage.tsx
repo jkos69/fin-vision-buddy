@@ -14,6 +14,7 @@ export default function UploadPage() {
   const mesesComReal = hasData ? getMesesComReal(filteredRecords) : [];
   const orcCount = records.filter(r => r.base === 'ORÇ26').length;
   const realCount = records.filter(r => r.base === 'REAL26').length;
+  const missingOrigem = records.length > 0 && records.some(r => !r.origem);
 
   const [lastUpload, setLastUpload] = useState<any>(null);
 
@@ -70,6 +71,13 @@ export default function UploadPage() {
       )}
 
       <FileUpload />
+
+      {hasData && isCEO && missingOrigem && (
+        <div className="glass-card p-3 border-warning/30 flex items-center gap-2 text-xs text-warning">
+          <span>⚠️</span>
+          Dados antigos detectados sem classificação Custo/Despesa. Faça um novo upload para atualizar.
+        </div>
+      )}
 
       {hasData && (
         <div className="glass-card p-5 space-y-4">
