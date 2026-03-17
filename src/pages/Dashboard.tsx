@@ -31,7 +31,7 @@ function SummaryCard({ title, value, subtitle, icon: Icon, variant, onClick }: {
 }
 
 export default function Dashboard() {
-  const { filteredRecords, hasData, periodoView, mesSelecionado } = useOPEX();
+  const { filteredRecords, hasData, periodoView, mesSelecionado, projecaoTipo } = useOPEX();
   const { isCEO, isDiretoria, isArea, session } = useAuth();
   const { theme } = useTheme();
   const colors = getChartColors(theme);
