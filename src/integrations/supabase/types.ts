@@ -222,6 +222,7 @@ export type Database = {
           tipo: string
         }[]
       }
+      destroy_session: { Args: { p_session_token: string }; Returns: boolean }
       insert_opex_batch: {
         Args: { p_records: Json; p_session_token: string }
         Returns: number
