@@ -70,7 +70,7 @@ function SidebarContent() {
         ))}
       </nav>
 
-      <div className="mt-auto space-y-3 border-t border-border pt-4">
+      <div className="space-y-3 border-t border-border pt-4 mt-4">
         {/* Periodo toggle */}
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground font-medium px-1">Período</p>
@@ -236,8 +236,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {mobileOpen && (
           <>
             <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} />
-            <aside className="fixed left-0 top-0 z-50 h-screen w-64 flex flex-col border-r border-border bg-sidebar p-4 animate-slide-in">
-              <SidebarContent />
+            <aside className="fixed left-0 top-0 z-50 h-screen w-64 flex flex-col border-r border-border bg-sidebar animate-slide-in">
+              <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+                <SidebarContent />
+              </div>
             </aside>
           </>
         )}
@@ -251,8 +253,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border bg-sidebar p-4">
-        <SidebarContent />
+      <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border bg-sidebar">
+        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+          <SidebarContent />
+        </div>
       </aside>
       <main className="ml-64 flex-1 p-6">
         <div className="mx-auto max-w-7xl animate-fade-in">{children}</div>
