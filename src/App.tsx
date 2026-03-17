@@ -24,18 +24,16 @@ function AppRoutes() {
 
   return (
     <OPEXProvider>
-      <BrowserRouter>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/areas" element={<AreasPage />} />
-            <Route path="/pacotes" element={<PacotesPage />} />
-            <Route path="/comparacao" element={<ComparacaoPage />} />
-            <Route path="/upload" element={<UploadPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppLayout>
-      </BrowserRouter>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/areas" element={<AreasPage />} />
+          <Route path="/pacotes" element={<PacotesPage />} />
+          <Route path="/comparacao" element={<ComparacaoPage />} />
+          <Route path="/upload" element={<UploadPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AppLayout>
     </OPEXProvider>
   );
 }
@@ -46,9 +44,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
       </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
