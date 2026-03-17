@@ -118,12 +118,13 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
   const clearRecords = useCallback(async () => {
     setRecordsState([]);
     try {
-      await supabase.from('opex_records').delete().gt('id', 0);
-      await supabase.from('opex_uploads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (session?.sessionToken) {
+        await supabase.rpc('clear_opex_data', { p_session_token: session.sessionToken });
+      }
     } catch (e) {
       console.error('[OPEX] Failed to clear DB:', e);
     }
-  }, []);
+  }, [session]);
 
   const filteredRecords = useMemo(() => {
     let recs = records;
