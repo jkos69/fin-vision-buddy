@@ -23,7 +23,8 @@ export function getMesesComReal(records: OPEXRecord[]): number[] {
 export function getSummary(
   records: OPEXRecord[],
   periodoView: 'ytd' | 'mensal' = 'ytd',
-  mesSelecionado: number | null = null
+  mesSelecionado: number | null = null,
+  projecaoTipo: 'media' | 'proporcional' | 'hibrida' = 'hibrida'
 ): SummaryData {
   const mesesComReal = getMesesComReal(records);
   const orcadoAnual = records.filter(r => r.base === 'ORÇ26').reduce((s, r) => s + r.executado, 0);
@@ -35,7 +36,6 @@ export function getSummary(
     orcadoRef = records.filter(r => r.base === 'ORÇ26' && r.mes === mesSelecionado).reduce((s, r) => s + r.executado, 0);
     realizadoRef = records.filter(r => r.base === 'REAL26' && r.mes === mesSelecionado).reduce((s, r) => s + r.executado, 0);
   } else {
-    // YTD
     orcadoRef = records.filter(r => r.base === 'ORÇ26' && mesesComReal.includes(r.mes)).reduce((s, r) => s + r.executado, 0);
     realizadoRef = records.filter(r => r.base === 'REAL26').reduce((s, r) => s + r.executado, 0);
   }
@@ -43,7 +43,20 @@ export function getSummary(
   const variacao = realizadoRef - orcadoRef;
   const variacaoPercent = orcadoRef !== 0 ? (variacao / orcadoRef) * 100 : 0;
   const realizadoTotal = records.filter(r => r.base === 'REAL26').reduce((s, r) => s + r.executado, 0);
-  const projecaoAnual = mesesComReal.length > 0 ? (realizadoTotal / mesesComReal.length) * 12 : 0;
+  const orcadoYTDtotal = records.filter(r => r.base === 'ORÇ26' && mesesComReal.includes(r.mes)).reduce((s, r) => s + r.executado, 0);
+  const orcadoRestante = orcadoAnual - orcadoYTDtotal;
+
+  let projecaoAnual: number;
+  if (mesesComReal.length === 0) {
+    projecaoAnual = 0;
+  } else if (projecaoTipo === 'media') {
+    projecaoAnual = (realizadoTotal / mesesComReal.length) * 12;
+  } else if (projecaoTipo === 'proporcional') {
+    const desvio = orcadoYTDtotal !== 0 ? realizadoTotal / orcadoYTDtotal : 1;
+    projecaoAnual = orcadoAnual * desvio;
+  } else {
+    projecaoAnual = realizadoTotal + orcadoRestante;
+  }
 
   return { orcadoYTD: orcadoRef, realizadoYTD: realizadoRef, variacao, variacaoPercent, orcadoAnual, mesesComReal, projecaoAnual };
 }
