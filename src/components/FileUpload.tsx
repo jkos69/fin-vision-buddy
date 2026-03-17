@@ -31,6 +31,8 @@ function mapRecordToDb(r: OPEXRecord, uploadId: string) {
     nome_fornecedor: r.nomeFornecedor,
     desc_pedido: r.descPedido,
     fornecedor_gerencial: r.fornecedorGerencial,
+    origem: r.origem,
+    descr_origem: r.descrOrigem,
   };
 }
 

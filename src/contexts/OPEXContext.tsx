@@ -154,6 +154,8 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
       tipoFilter, setTipoFilter, filteredRecords,
       periodoView, setPeriodoView, mesSelecionado, setMesSelecionado,
       reloadFromDB,
+      projecaoTipo, setProjecaoTipo,
+      origemFilter, setOrigemFilter,
     }}>
       {children}
     </OPEXContext.Provider>
