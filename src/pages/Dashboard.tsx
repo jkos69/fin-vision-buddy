@@ -52,7 +52,7 @@ export default function Dashboard() {
     );
   }
 
-  const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
+  const summary = getSummary(filteredRecords, periodoView, mesSelecionado, projecaoTipo);
   const monthlyData = getMonthlyData(filteredRecords);
   const mesesComReal = getMesesComReal(filteredRecords);
 
