@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     if (session?.sessionToken) {
-      await supabase.rpc('destroy_session', { p_session_token: session.sessionToken }).catch(() => {});
+      try { await supabase.rpc('destroy_session', { p_session_token: session.sessionToken }); } catch {}
     }
     setSession(null);
     sessionStorage.removeItem(SESSION_KEY);
