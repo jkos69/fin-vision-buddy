@@ -18,7 +18,7 @@ function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
 }
 
 export default function ComparacaoPage() {
-  const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
+  const { filteredRecords, periodoView, mesSelecionado, projecaoTipo } = useOPEX();
   const { isCEO, isDiretoria } = useAuth();
   const { theme } = useTheme();
   const colors = getChartColors(theme);
