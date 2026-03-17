@@ -141,8 +141,12 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
       recs = recs.filter(r => r.tipo === tipoFilter);
     }
 
+    if (origemFilter !== 'all') {
+      recs = recs.filter(r => r.origem === origemFilter);
+    }
+
     return recs;
-  }, [records, session, tipoFilter]);
+  }, [records, session, tipoFilter, origemFilter]);
 
   return (
     <OPEXContext.Provider value={{
