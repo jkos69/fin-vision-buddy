@@ -41,7 +41,7 @@ export default function ComparacaoPage() {
     }
   }, [searchParams, filteredRecords]);
   const mesesComReal = getMesesComReal(filteredRecords);
-  const summary = getSummary(filteredRecords, periodoView, mesSelecionado);
+  const summary = getSummary(filteredRecords, periodoView, mesSelecionado, projecaoTipo);
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
   const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';

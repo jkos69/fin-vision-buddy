@@ -72,6 +72,13 @@ export default function UploadPage() {
 
       <FileUpload />
 
+      {hasData && isCEO && missingOrigem && (
+        <div className="glass-card p-3 border-warning/30 flex items-center gap-2 text-xs text-warning">
+          <span>⚠️</span>
+          Dados antigos detectados sem classificação Custo/Despesa. Faça um novo upload para atualizar.
+        </div>
+      )}
+
       {hasData && (
         <div className="glass-card p-5 space-y-4">
           <div className="flex items-center gap-2">
