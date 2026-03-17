@@ -236,8 +236,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {mobileOpen && (
           <>
             <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} />
-            <aside className="fixed left-0 top-0 z-50 h-screen w-64 flex flex-col border-r border-border bg-sidebar p-4 animate-slide-in">
-              <SidebarContent />
+            <aside className="fixed left-0 top-0 z-50 h-screen w-64 flex flex-col border-r border-border bg-sidebar animate-slide-in">
+              <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+                <SidebarContent />
+              </div>
+            </aside>
             </aside>
           </>
         )}
