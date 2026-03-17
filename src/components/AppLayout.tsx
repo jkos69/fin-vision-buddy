@@ -70,7 +70,7 @@ function SidebarContent() {
         ))}
       </nav>
 
-      <div className="mt-auto space-y-3 border-t border-border pt-4">
+      <div className="space-y-3 border-t border-border pt-4 mt-4">
         {/* Periodo toggle */}
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground font-medium px-1">Período</p>
