@@ -61,6 +61,8 @@ export function OPEXProvider({ children }: { children: ReactNode }) {
   const [tipoFilter, setTipoFilter] = useState<'all' | 'Opex sem Folha' | 'Folha Total'>('all');
   const [periodoView, setPeriodoView] = useState<PeriodoView>('ytd');
   const [mesSelecionado, setMesSelecionado] = useState<number | null>(null);
+  const [projecaoTipo, setProjecaoTipo] = useState<ProjecaoTipo>('hibrida');
+  const [origemFilter, setOrigemFilter] = useState<OrigemFilter>('all');
   const { session } = useAuth();
 
   const reloadFromDB = useCallback(async () => {
