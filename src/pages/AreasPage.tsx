@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { groupBy, getMesesComReal, formatCurrency, formatPercent } from '@/lib/opex-utils';
+import { groupBy, getMesesComReal, formatCurrency, formatPercent, getSemaforo } from '@/lib/opex-utils';
 import { MESES_PT } from '@/types/opex';
 import { Building2, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -31,6 +31,7 @@ export default function AreasPage() {
   const [selectedArea, setSelectedArea] = useState<string | null>(
     isArea ? session?.area || null : null
   );
+  const [selectedCC, setSelectedCC] = useState<string | null>(null);
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -43,12 +44,14 @@ export default function AreasPage() {
         if (areaRecord) {
           setSelectedDiretoria(areaRecord.diretoria);
           setSelectedArea(highlightParam);
+          setSelectedCC(null);
         }
       } else if (typeParam === 'Recurso') {
         const recursoRecord = filteredRecords.find(r => r.recurso === highlightParam);
         if (recursoRecord) {
           setSelectedDiretoria(recursoRecord.diretoria);
           setSelectedArea(recursoRecord.areaGrupo1);
+          setSelectedCC(null);
           const recs = filteredRecords.filter(r => r.recurso === highlightParam);
           setDetailModal({ open: true, records: recs, title: `Recurso: ${highlightParam}` });
         }
@@ -65,9 +68,54 @@ export default function AreasPage() {
 
   const drillRecords = selectedArea ? areaRecords.filter(r => r.areaGrupo1 === selectedArea) : [];
   const pacoteData = selectedArea ? groupBy(drillRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
-  const recursoData = selectedArea ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const recursoData = selectedArea && !selectedCC ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
   const top5 = recursoData.slice(0, 5);
   const totalArea = recursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
+
+  // Centro de Custo data
+  const ccData = selectedArea ? (() => {
+    const groups = new Map<string, { codigo: string; descricao: string; orcado: number; realizado: number }>();
+    drillRecords.forEach(r => {
+      const key = r.centroCusto;
+      if (!key) return;
+      if (!groups.has(key)) {
+        groups.set(key, { codigo: r.centroCusto, descricao: r.descricaoCCusto, orcado: 0, realizado: 0 });
+      }
+      const g = groups.get(key)!;
+      if (r.base === 'ORÇ26') {
+        if (periodoView === 'mensal' && mesSelecionado) {
+          if (r.mes === mesSelecionado) g.orcado += r.executado;
+        } else if (mesesComReal.includes(r.mes)) {
+          g.orcado += r.executado;
+        }
+      }
+      if (r.base === 'REAL26') {
+        if (periodoView === 'mensal' && mesSelecionado) {
+          if (r.mes === mesSelecionado) g.realizado += r.executado;
+        } else {
+          g.realizado += r.executado;
+        }
+      }
+    });
+    return Array.from(groups.values()).map(g => ({
+      nome: `${g.codigo} - ${g.descricao}`,
+      codigo: g.codigo,
+      descricao: g.descricao,
+      orcado: g.orcado,
+      realizado: g.realizado,
+      variacao: g.realizado - g.orcado,
+      variacaoPercent: g.orcado !== 0 ? ((g.realizado - g.orcado) / g.orcado) * 100 : 0,
+      semaforo: getSemaforo(g.realizado, g.orcado),
+    })).sort((a, b) => b.orcado - a.orcado);
+  })() : [];
+
+  // Level 4: CC drill-down data
+  const ccRecords = selectedCC ? drillRecords.filter(r => r.centroCusto === selectedCC) : [];
+  const ccPacoteData = selectedCC ? groupBy(ccRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const ccRecursoData = selectedCC ? groupBy(ccRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const ccTop5 = ccRecursoData.slice(0, 5);
+  const ccTotal = ccRecursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
+  const ccDescricao = ccRecords[0]?.descricaoCCusto || '';
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
   const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
@@ -75,6 +123,12 @@ export default function AreasPage() {
 
   const pageTitle = isCEO ? 'Por Diretoria / Área' : isDiretoria ? 'Minhas Áreas' : 'Minha Área';
   const marginLeft = isMobile ? 100 : 180;
+
+  // Navigation handlers
+  const handleBackToDiretorias = () => { setSelectedDiretoria(null); setSelectedArea(null); setSelectedCC(null); };
+  const handleBackToAreas = () => { setSelectedArea(null); setSelectedCC(null); };
+  const handleBackToArea = () => { setSelectedCC(null); };
+  const handleSelectArea = (areaNome: string) => { setSelectedArea(areaNome); setSelectedCC(null); };
 
   const areaColumns: ColumnDef[] = [
     { key: 'nome', label: 'Área', align: 'left' },
@@ -96,6 +150,16 @@ export default function AreasPage() {
     }},
   ];
 
+  const ccColumns: ColumnDef[] = [
+    { key: 'codigo', label: 'Código', align: 'left' },
+    { key: 'descricao', label: 'Descrição', align: 'left' },
+    { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
+    { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
+    { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
+    { key: 'variacaoPercent', label: 'Var %', align: 'right', format: 'percent' },
+    { key: 'semaforo', label: 'Status', align: 'center', sortable: false, render: (v) => <SemaforoIcon status={v} /> },
+  ];
+
   const recursoColumns: ColumnDef[] = [
     { key: 'nome', label: 'Recurso', align: 'left' },
     { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
@@ -104,9 +168,10 @@ export default function AreasPage() {
     { key: 'variacaoPercent', label: 'Var %', align: 'right', format: 'percent' },
   ];
 
-  const openDetail = (recursoNome: string) => {
-    const recs = drillRecords.filter(r => r.recurso === recursoNome);
-    setDetailModal({ open: true, records: recs, title: `${selectedArea} → ${recursoNome}` });
+  const openDetail = (recursoNome: string, sourceRecords: any[]) => {
+    const recs = sourceRecords.filter(r => r.recurso === recursoNome);
+    const prefix = selectedCC ? `${selectedCC} → ${recursoNome}` : `${selectedArea} → ${recursoNome}`;
+    setDetailModal({ open: true, records: recs, title: prefix });
   };
 
   return (
@@ -117,9 +182,9 @@ export default function AreasPage() {
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-sm flex-wrap">
         {isCEO && (
-          <button onClick={() => { setSelectedDiretoria(null); setSelectedArea(null); }} className="text-primary hover:underline">Diretorias</button>
+          <button onClick={handleBackToDiretorias} className="text-primary hover:underline">Diretorias</button>
         )}
         {!isCEO && selectedDiretoria && (
           <span className="text-muted-foreground">Diretoria: {selectedDiretoria}</span>
@@ -127,19 +192,27 @@ export default function AreasPage() {
         {isCEO && selectedDiretoria && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <button onClick={() => setSelectedArea(null)} className="text-primary hover:underline">Diretoria: {selectedDiretoria}</button>
+            <button onClick={handleBackToAreas} className="text-primary hover:underline">Diretoria: {selectedDiretoria}</button>
           </>
         )}
         {isDiretoria && selectedArea && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <button onClick={() => setSelectedArea(null)} className="text-primary hover:underline">Áreas</button>
+            <button onClick={handleBackToAreas} className="text-primary hover:underline">Áreas</button>
           </>
         )}
-        {selectedArea && (
+        {selectedArea && !selectedCC && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-foreground">Área: {selectedArea}</span>
+          </>
+        )}
+        {selectedArea && selectedCC && (
+          <>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <button onClick={handleBackToArea} className="text-primary hover:underline">Área: {selectedArea}</button>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-foreground">CC: {selectedCC} - {ccDescricao}</span>
           </>
         )}
       </div>
@@ -177,13 +250,13 @@ export default function AreasPage() {
         <SortableTable
           columns={areaColumns}
           data={areaData}
-          onRowClick={(row) => setSelectedArea(row.nome)}
+          onRowClick={(row) => handleSelectArea(row.nome)}
           exportFilename={`areas-${selectedDiretoria}.csv`}
         />
       )}
 
-      {/* Level 3: Drill-down */}
-      {selectedArea && (
+      {/* Level 3: Area drill-down (no CC selected) */}
+      {selectedArea && !selectedCC && (
         <div className="space-y-6">
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold mb-4">Composição por Pacote — {selectedArea}</h3>
@@ -199,11 +272,26 @@ export default function AreasPage() {
             </ResponsiveContainer>
           </div>
 
+          {/* CC table — only if area has multiple CCs */}
+          {ccData.length > 1 && (
+            <div>
+              <div className="px-1 py-2">
+                <h3 className="text-sm font-semibold">Centros de Custo ({ccData.length})</h3>
+              </div>
+              <SortableTable
+                columns={ccColumns}
+                data={ccData}
+                onRowClick={(row) => setSelectedCC(row.codigo)}
+                exportFilename={`centros-custo-${selectedArea}.csv`}
+              />
+            </div>
+          )}
+
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold mb-4">Top 5 Maiores Custos (por Recurso)</h3>
             <SortableTable
               columns={[
-                { key: '_rank', label: '#', align: 'center', sortable: false, render: (_, __, i) => <span className="text-primary font-bold">#{i+1}</span> },
+                { key: '_rank', label: '#', align: 'center', sortable: false, render: (_, __, i) => <span className="text-primary font-bold">#{i!+1}</span> },
                 { key: 'nome', label: 'Recurso', align: 'left' },
                 { key: '_valor', label: 'Valor', align: 'right', format: 'currency', render: (_, row) => formatCurrency(row.realizado || row.orcado) },
                 { key: '_pct', label: '% Total', align: 'right', render: (_, row) => `${totalArea > 0 ? ((row.realizado || row.orcado) / totalArea * 100).toFixed(1) : 0}%` },
@@ -213,7 +301,7 @@ export default function AreasPage() {
               ]}
               data={top5}
               highlightTop={5}
-              onRowClick={(row) => openDetail(row.nome)}
+              onRowClick={(row) => openDetail(row.nome, drillRecords)}
             />
           </div>
 
@@ -222,8 +310,55 @@ export default function AreasPage() {
             <SortableTable
               columns={recursoColumns}
               data={recursoData}
-              onRowClick={(row) => openDetail(row.nome)}
+              onRowClick={(row) => openDetail(row.nome, drillRecords)}
               exportFilename={`recursos-${selectedArea}.csv`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Level 4: CC drill-down */}
+      {selectedCC && (
+        <div className="space-y-6">
+          <div className="glass-card p-5">
+            <h3 className="text-sm font-semibold mb-4">Composição por Pacote — {selectedCC} - {ccDescricao}</h3>
+            <ResponsiveContainer width="100%" height={Math.max(200, ccPacoteData.length * 40)}>
+              <BarChart data={ccPacoteData} layout="vertical" margin={{ left: marginLeft }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+                <XAxis type="number" tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: colors.axis, fontSize: 10 }} width={marginLeft - 5} />
+                <Tooltip content={<ChartTooltip />} />
+                <Bar dataKey="orcado" name="Orçado" fill={colors.orcado} opacity={0.4} />
+                <Bar dataKey="realizado" name="Realizado" fill={colors.realizado} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="glass-card p-5">
+            <h3 className="text-sm font-semibold mb-4">Top 5 Maiores Custos</h3>
+            <SortableTable
+              columns={[
+                { key: '_rank', label: '#', align: 'center', sortable: false, render: (_, __, i) => <span className="text-primary font-bold">#{i!+1}</span> },
+                { key: 'nome', label: 'Recurso', align: 'left' },
+                { key: '_valor', label: 'Valor', align: 'right', format: 'currency', render: (_, row) => formatCurrency(row.realizado || row.orcado) },
+                { key: '_pct', label: '% Total', align: 'right', render: (_, row) => `${ccTotal > 0 ? ((row.realizado || row.orcado) / ccTotal * 100).toFixed(1) : 0}%` },
+                { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
+                { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
+                { key: 'variacao', label: 'Variação', align: 'right', format: 'currency' },
+              ]}
+              data={ccTop5}
+              highlightTop={5}
+              onRowClick={(row) => openDetail(row.nome, ccRecords)}
+            />
+          </div>
+
+          <div>
+            <div className="px-1 py-2"><h3 className="text-sm font-semibold">Detalhamento por Recurso</h3></div>
+            <SortableTable
+              columns={recursoColumns}
+              data={ccRecursoData}
+              onRowClick={(row) => openDetail(row.nome, ccRecords)}
+              exportFilename={`recursos-${selectedCC}.csv`}
             />
           </div>
         </div>
