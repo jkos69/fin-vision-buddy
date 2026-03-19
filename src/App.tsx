@@ -12,6 +12,7 @@ import AreasPage from "./pages/AreasPage";
 import PacotesPage from "./pages/PacotesPage";
 import ComparacaoPage from "./pages/ComparacaoPage";
 import UploadPage from "./pages/UploadPage";
+import SGAPage from "./pages/SGAPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ function AppRoutes() {
           <Route path="/areas" element={<AreasPage />} />
           <Route path="/pacotes" element={<PacotesPage />} />
           <Route path="/comparacao" element={<ComparacaoPage />} />
+          <Route path="/sga" element={<SGAPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2, Sun, Moon } from 'lucide-react';
+import { BarChart3, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2, Sun, Moon, PieChart } from 'lucide-react';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMesesComReal } from '@/lib/opex-utils';
@@ -22,6 +22,7 @@ function SidebarContent() {
     { to: '/areas', icon: Building2, label: isCEO ? 'Por Diretoria / Área' : isDiretoria ? 'Minhas Áreas' : 'Minha Área', show: true },
     { to: '/pacotes', icon: Package, label: isArea ? 'Meus Pacotes' : 'Por Pacote', show: true },
     { to: '/comparacao', icon: GitCompareArrows, label: 'Orçado vs Realizado', show: true },
+    { to: '/sga', icon: PieChart, label: 'SG&A', show: true },
     { to: '/upload', icon: Upload, label: 'Upload', show: isCEO },
   ].filter(item => item.show);
 

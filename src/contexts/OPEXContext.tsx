@@ -52,6 +52,7 @@ function mapDbToRecord(row: any): OPEXRecord {
     fornecedorGerencial: row.fornecedor_gerencial || '',
     origem: row.origem || '',
     descrOrigem: row.descr_origem || '',
+    agrupamento: row.agrupamento || '',
   };
 }
 

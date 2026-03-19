@@ -82,6 +82,7 @@ export type Database = {
       }
       opex_records: {
         Row: {
+          agrupamento: string | null
           area_grupo1: string
           base: string
           centro_custo: string | null
@@ -109,6 +110,7 @@ export type Database = {
           upload_id: string | null
         }
         Insert: {
+          agrupamento?: string | null
           area_grupo1: string
           base: string
           centro_custo?: string | null
@@ -136,6 +138,7 @@ export type Database = {
           upload_id?: string | null
         }
         Update: {
+          agrupamento?: string | null
           area_grupo1?: string
           base?: string
           centro_custo?: string | null
