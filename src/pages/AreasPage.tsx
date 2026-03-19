@@ -109,6 +109,11 @@ export default function AreasPage() {
     })).sort((a, b) => b.orcado - a.orcado);
   })() : [];
 
+  // Total CCs for the area without classification filter — for auto-skip logic
+  const totalCCsArea = selectedArea ? new Set(
+    records.filter(r => r.areaGrupo1 === selectedArea).map(r => r.centroCusto).filter(Boolean)
+  ).size : 0;
+
   // Level 4: CC drill-down data
   const ccRecords = selectedCC ? drillRecords.filter(r => r.centroCusto === selectedCC) : [];
   const ccPacoteData = selectedCC ? groupBy(ccRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
