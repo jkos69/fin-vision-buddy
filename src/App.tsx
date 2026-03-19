@@ -12,6 +12,7 @@ import AreasPage from "./pages/AreasPage";
 import PacotesPage from "./pages/PacotesPage";
 import ComparacaoPage from "./pages/ComparacaoPage";
 import UploadPage from "./pages/UploadPage";
+import SGAPage from "./pages/SGAPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
