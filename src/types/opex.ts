@@ -22,6 +22,7 @@ export interface OPEXRecord {
   fornecedorGerencial: string;
   origem: string;
   descrOrigem: string;
+  agrupamento: string;
 }
 
 export type ProjecaoTipo = 'media' | 'proporcional' | 'hibrida';
