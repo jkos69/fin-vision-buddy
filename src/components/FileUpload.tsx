@@ -126,7 +126,7 @@ export function FileUpload() {
         }
         const { data: count, error: insertError } = await supabase.rpc('insert_opex_batch', {
           p_session_token: session.sessionToken,
-          p_records: JSON.stringify(batch),
+          p_records: batch,
         });
         if (insertError) throw new Error(`Erro ao inserir batch ${i}: ${insertError.message}`);
         if (count === -1) throw new Error('Sem permissão para inserir dados');
