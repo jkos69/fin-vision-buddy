@@ -19,7 +19,7 @@ function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
 }
 
 export default function AreasPage() {
-  const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
+  const { filteredRecords, periodoView, mesSelecionado, origemFilter, records } = useOPEX();
   const { isCEO, isDiretoria, isArea, session } = useAuth();
   const { theme } = useTheme();
   const colors = getChartColors(theme);
@@ -108,6 +108,11 @@ export default function AreasPage() {
       semaforo: getSemaforo(g.realizado, g.orcado),
     })).sort((a, b) => b.orcado - a.orcado);
   })() : [];
+
+  // Total CCs for the area without classification filter — for auto-skip logic
+  const totalCCsArea = selectedArea ? new Set(
+    records.filter(r => r.areaGrupo1 === selectedArea).map(r => r.centroCusto).filter(Boolean)
+  ).size : 0;
 
   // Level 4: CC drill-down data
   const ccRecords = selectedCC ? drillRecords.filter(r => r.centroCusto === selectedCC) : [];
@@ -272,8 +277,8 @@ export default function AreasPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* CC table — only if area has multiple CCs */}
-          {ccData.length > 1 && (
+          {/* CC table — show if multiple CCs total, or if classification filter is active */}
+          {ccData.length >= 1 && (totalCCsArea > 1 || origemFilter !== 'all') && (
             <div>
               <div className="px-1 py-2">
                 <h3 className="text-sm font-semibold">Centros de Custo ({ccData.length})</h3>
