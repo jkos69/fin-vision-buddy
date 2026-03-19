@@ -19,7 +19,7 @@ function SemaforoIcon({ status }: { status: 'green' | 'yellow' | 'red' }) {
 }
 
 export default function AreasPage() {
-  const { filteredRecords, periodoView, mesSelecionado } = useOPEX();
+  const { filteredRecords, periodoView, mesSelecionado, origemFilter, records } = useOPEX();
   const { isCEO, isDiretoria, isArea, session } = useAuth();
   const { theme } = useTheme();
   const colors = getChartColors(theme);
