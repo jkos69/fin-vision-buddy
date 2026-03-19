@@ -120,6 +120,10 @@ export function FileUpload() {
       const total = records.length;
       for (let i = 0; i < total; i += batchSize) {
         const batch = records.slice(i, i + batchSize).map(r => mapRecordToDb(r, uploadId));
+        if (i === 0) {
+          console.log('[Upload Debug] First record being sent:', JSON.stringify(batch[0]));
+          console.log('[Upload Debug] Has agrupamento?', 'agrupamento' in batch[0], batch[0].agrupamento);
+        }
         const { data: count, error: insertError } = await supabase.rpc('insert_opex_batch', {
           p_session_token: session.sessionToken,
           p_records: JSON.stringify(batch),
