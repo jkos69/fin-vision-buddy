@@ -31,6 +31,7 @@ function AppRoutes() {
           <Route path="/areas" element={<AreasPage />} />
           <Route path="/pacotes" element={<PacotesPage />} />
           <Route path="/comparacao" element={<ComparacaoPage />} />
+          <Route path="/sga" element={<SGAPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
