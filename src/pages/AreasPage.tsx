@@ -277,8 +277,8 @@ export default function AreasPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* CC table — only if area has multiple CCs */}
-          {ccData.length > 1 && (
+          {/* CC table — show if multiple CCs total, or if classification filter is active */}
+          {ccData.length >= 1 && (totalCCsArea > 1 || origemFilter !== 'all') && (
             <div>
               <div className="px-1 py-2">
                 <h3 className="text-sm font-semibold">Centros de Custo ({ccData.length})</h3>
