@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.insert_opex_batch(text, jsonb);
