@@ -87,6 +87,7 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
       contaContabil: sanitizeString(row[8]),
       descricaoConta: sanitizeString(row[9]),
       agrupamento: sanitizeString(row[10]),
+      decisao: sanitizeString(row[53]) || 'N/A',
       recurso: sanitizeString(row[11]),
       pacote: sanitizeString(row[12]),
       debito: parseNumber(row[13]),
