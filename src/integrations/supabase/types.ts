@@ -229,15 +229,10 @@ export type Database = {
         }[]
       }
       destroy_session: { Args: { p_session_token: string }; Returns: boolean }
-      insert_opex_batch:
-        | {
-            Args: { p_records: Json; p_session_token: string }
-            Returns: number
-          }
-        | {
-            Args: { p_records: Json; p_session_token: string }
-            Returns: number
-          }
+      insert_opex_batch: {
+        Args: { p_records: Json; p_session_token: string }
+        Returns: number
+      }
       insert_opex_upload: {
         Args: {
           p_filename: string
