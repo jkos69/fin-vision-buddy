@@ -4,6 +4,7 @@ import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { formatCurrency } from '@/lib/opex-utils';
 import { MESES_PT, type OPEXRecord } from '@/types/opex';
 import { useOPEX } from '@/contexts/OPEXContext';
+import { Badge } from '@/components/ui/badge';
 
 interface ExpenseDetailModalProps {
   open: boolean;
@@ -12,10 +13,20 @@ interface ExpenseDetailModalProps {
   title: string;
 }
 
+type DecisaoFilter = 'all' | 'MANTER' | 'EXCLUIR';
+
+function DecisaoBadge({ value }: { value: string }) {
+  const upper = value.toUpperCase();
+  if (upper === 'MANTER') return <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20">MANTER</Badge>;
+  if (upper === 'EXCLUIR') return <Badge className="bg-destructive/15 text-destructive border-destructive/30 hover:bg-destructive/20">EXCLUIR</Badge>;
+  return <Badge variant="outline" className="text-muted-foreground">N/A</Badge>;
+}
+
 export function ExpenseDetailModal({ open, onOpenChange, records, title }: ExpenseDetailModalProps) {
   const { periodoView, mesSelecionado } = useOPEX();
   const [mesesSelecionados, setMesesSelecionados] = useState<number[]>([]);
   const [baseFilter, setBaseFilter] = useState<'all' | 'ORÇ26' | 'REAL26'>('all');
+  const [decisaoFilter, setDecisaoFilter] = useState<DecisaoFilter>('all');
 
   useEffect(() => {
     if (open) {
@@ -25,6 +36,7 @@ export function ExpenseDetailModal({ open, onOpenChange, records, title }: Expen
         setMesesSelecionados([]);
       }
       setBaseFilter('all');
+      setDecisaoFilter('all');
     }
   }, [open, periodoView, mesSelecionado]);
 
@@ -52,6 +64,8 @@ export function ExpenseDetailModal({ open, onOpenChange, records, title }: Expen
   const isYTD = mesesSelecionados.length > 0 &&
     JSON.stringify([...mesesSelecionados].sort((a, b) => a - b)) === JSON.stringify([...mesesComRealNoModal].sort((a, b) => a - b));
 
+  const showDecisaoFilter = baseFilter !== 'ORÇ26';
+
   const filtered = useMemo(() => {
     let recs = records;
     if (mesesSelecionados.length > 0) {
@@ -60,8 +74,11 @@ export function ExpenseDetailModal({ open, onOpenChange, records, title }: Expen
     if (baseFilter !== 'all') {
       recs = recs.filter(r => r.base === baseFilter);
     }
+    if (decisaoFilter !== 'all' && showDecisaoFilter) {
+      recs = recs.filter(r => r.decisao.toUpperCase() === decisaoFilter);
+    }
     return recs;
-  }, [records, mesesSelecionados, baseFilter]);
+  }, [records, mesesSelecionados, baseFilter, decisaoFilter, showDecisaoFilter]);
 
   const totalExecutado = filtered.reduce((s, r) => s + r.executado, 0);
   const totalOrcado = filtered.filter(r => r.base === 'ORÇ26').reduce((s, r) => s + r.executado, 0);
@@ -78,7 +95,11 @@ export function ExpenseDetailModal({ open, onOpenChange, records, title }: Expen
     { key: 'debito', label: 'Débito', align: 'right', format: 'currency' },
     { key: 'credito', label: 'Crédito', align: 'right', format: 'currency' },
     { key: 'executado', label: 'Executado', align: 'right', format: 'currency' },
+    { key: 'decisao', label: 'Decisão', align: 'center', render: (v) => <DecisaoBadge value={String(v || 'N/A')} /> },
   ];
+
+  const chipClass = (active: boolean) =>
+    `px-2.5 py-1 rounded-md text-xs transition-colors ${active ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,24 +118,10 @@ export function ExpenseDetailModal({ open, onOpenChange, records, title }: Expen
 
         {/* Month filter chips */}
         <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={selecionarTodos}
-            className={`px-2.5 py-1 rounded-md text-xs transition-colors ${mesesSelecionados.length === 0 ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
-          >
-            Todos
-          </button>
-          <button
-            onClick={selecionarYTD}
-            className={`px-2.5 py-1 rounded-md text-xs transition-colors ${isYTD ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
-          >
-            YTD
-          </button>
+          <button onClick={selecionarTodos} className={chipClass(mesesSelecionados.length === 0)}>Todos</button>
+          <button onClick={selecionarYTD} className={chipClass(isYTD)}>YTD</button>
           {mesesPresentes.map(m => (
-            <button
-              key={m}
-              onClick={() => toggleMes(m)}
-              className={`px-2.5 py-1 rounded-md text-xs transition-colors ${mesesSelecionados.includes(m) ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
-            >
+            <button key={m} onClick={() => toggleMes(m)} className={chipClass(mesesSelecionados.includes(m))}>
               {MESES_PT[m - 1]}
             </button>
           ))}
@@ -128,21 +135,33 @@ export function ExpenseDetailModal({ open, onOpenChange, records, title }: Expen
             { value: 'REAL26', label: 'Só Realizado' },
             { value: 'ORÇ26', label: 'Só Orçado' },
           ] as const).map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setBaseFilter(opt.value)}
-              className={`px-2.5 py-1 rounded-md text-xs transition-colors ${baseFilter === opt.value ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
-            >
+            <button key={opt.value} onClick={() => setBaseFilter(opt.value)} className={chipClass(baseFilter === opt.value)}>
               {opt.label}
             </button>
           ))}
         </div>
 
+        {/* Decisão filter */}
+        {showDecisaoFilter && (
+          <div className="flex gap-1.5">
+            <span className="text-xs text-muted-foreground self-center mr-1">Decisão:</span>
+            {([
+              { value: 'all', label: 'Todos' },
+              { value: 'MANTER', label: 'Manter' },
+              { value: 'EXCLUIR', label: 'Excluir' },
+            ] as const).map(opt => (
+              <button key={opt.value} onClick={() => setDecisaoFilter(opt.value)} className={chipClass(decisaoFilter === opt.value)}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex-1 overflow-hidden">
           <SortableTable
             columns={columns}
             data={filtered}
-            maxHeight="calc(90vh - 260px)"
+            maxHeight="calc(90vh - 290px)"
             exportFilename={`detalhe-${title.replace(/\s+/g, '-').toLowerCase()}.csv`}
           />
         </div>

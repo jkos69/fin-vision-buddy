@@ -1,0 +1,1 @@
+ALTER FUNCTION insert_opex_batch(JSONB, TEXT) SET search_path = public;

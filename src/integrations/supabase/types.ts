@@ -90,6 +90,7 @@ export type Database = {
           credito: number | null
           data_lcto: string | null
           debito: number | null
+          decisao: string | null
           desc_pedido: string | null
           descr_origem: string | null
           descricao_ccusto: string | null
@@ -118,6 +119,7 @@ export type Database = {
           credito?: number | null
           data_lcto?: string | null
           debito?: number | null
+          decisao?: string | null
           desc_pedido?: string | null
           descr_origem?: string | null
           descricao_ccusto?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           credito?: number | null
           data_lcto?: string | null
           debito?: number | null
+          decisao?: string | null
           desc_pedido?: string | null
           descr_origem?: string | null
           descricao_ccusto?: string | null
@@ -226,10 +229,15 @@ export type Database = {
         }[]
       }
       destroy_session: { Args: { p_session_token: string }; Returns: boolean }
-      insert_opex_batch: {
-        Args: { p_records: Json; p_session_token: string }
-        Returns: number
-      }
+      insert_opex_batch:
+        | {
+            Args: { p_records: Json; p_session_token: string }
+            Returns: number
+          }
+        | {
+            Args: { p_records: Json; p_session_token: string }
+            Returns: number
+          }
       insert_opex_upload: {
         Args: {
           p_filename: string

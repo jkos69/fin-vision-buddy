@@ -34,6 +34,7 @@ function mapRecordToDb(r: OPEXRecord, uploadId: string) {
     origem: r.origem,
     descr_origem: r.descrOrigem,
     agrupamento: r.agrupamento,
+    decisao: r.decisao,
   };
 }
 

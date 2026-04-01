@@ -53,6 +53,7 @@ function mapDbToRecord(row: any): OPEXRecord {
     origem: row.origem || '',
     descrOrigem: row.descr_origem || '',
     agrupamento: row.agrupamento || '',
+    decisao: row.decisao || 'N/A',
   };
 }
 
