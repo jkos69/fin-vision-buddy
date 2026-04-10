@@ -274,7 +274,11 @@ export default function SGAPage() {
                 setDetailModal({ open: true, records: recs, title: `SG&A: ${row.nome}` });
               }}
               exportFilename="sga-detalhamento.csv"
-              totalsRow={computeTotals(tableData, ['mesOrc', 'mesReal', 'mesVarR', 'mesVarPct', 'acumOrc', 'acumReal', 'acumVarR', 'acumVarPct'], { orcadoKey: 'acumOrc', realizadoKey: 'acumReal', varPercentKey: 'acumVarPct' })}
+              totalsRow={(() => {
+                const t = computeTotals(tableData, ['mesOrc', 'mesReal', 'mesVarR', 'mesVarPct', 'acumOrc', 'acumReal', 'acumVarR', 'acumVarPct'], { orcadoKey: 'acumOrc', realizadoKey: 'acumReal', varPercentKey: 'acumVarPct' });
+                t.mesVarPct = t.mesOrc !== 0 ? ((t.mesReal - t.mesOrc) / t.mesOrc) * 100 : 0;
+                return t;
+              })()}
             />
           </div>
         </>
