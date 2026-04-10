@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-colors';
 import { getMesesComReal, formatCurrency, formatCompact } from '@/lib/opex-utils';
+import { computeTotals } from '@/lib/totals-helper';
 import { MESES_PT, DIRETORIAS, type OPEXRecord } from '@/types/opex';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';

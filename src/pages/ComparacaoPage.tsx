@@ -4,6 +4,7 @@ import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent, getSummary } from '@/lib/opex-utils';
+import { computeTotals } from '@/lib/totals-helper';
 import { MESES_PT } from '@/types/opex';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, ReferenceLine, Cell } from 'recharts';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';

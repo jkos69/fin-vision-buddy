@@ -4,6 +4,7 @@ import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { groupBy, getMesesComReal, formatCurrency, formatCompact, formatPercent, getSemaforo } from '@/lib/opex-utils';
+import { computeTotals } from '@/lib/totals-helper';
 import { MESES_PT } from '@/types/opex';
 import { Building, ChevronRight, Search } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
