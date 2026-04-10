@@ -19,6 +19,7 @@ interface SortableTableProps<T = any> {
   maxHeight?: string;
   exportFilename?: string;
   emptyMessage?: string;
+  totalsRow?: Record<string, any>;
 }
 
 function formatValue(value: any, format?: string): string {
