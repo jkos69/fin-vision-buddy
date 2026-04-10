@@ -33,7 +33,7 @@ function formatValue(value: any, format?: string): string {
 }
 
 export function SortableTable<T extends Record<string, any>>({
-  columns, data, onRowClick, highlightTop, maxHeight = '480px', exportFilename, emptyMessage = 'Sem dados',
+  columns, data, onRowClick, highlightTop, maxHeight = '480px', exportFilename, emptyMessage = 'Sem dados', totalsRow,
 }: SortableTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
