@@ -312,7 +312,6 @@ export default function AreasPage() {
               onRowClick={(row) => openDetail(row.nome, drillRecords)}
               totalsRow={computeTotals(top5, ['orcado', 'realizado', 'variacao'])}
             />
-            />
           </div>
 
           <div>
