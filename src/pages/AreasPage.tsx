@@ -258,6 +258,7 @@ export default function AreasPage() {
           data={areaData}
           onRowClick={(row) => handleSelectArea(row.nome)}
           exportFilename={`areas-${selectedDiretoria}.csv`}
+          totalsRow={computeTotals(areaData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
         />
       )}
 
@@ -289,6 +290,7 @@ export default function AreasPage() {
                 data={ccData}
                 onRowClick={(row) => setSelectedCC(row.codigo)}
                 exportFilename={`centros-custo-${selectedArea}.csv`}
+                totalsRow={computeTotals(ccData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
               />
             </div>
           )}
@@ -308,6 +310,8 @@ export default function AreasPage() {
               data={top5}
               highlightTop={5}
               onRowClick={(row) => openDetail(row.nome, drillRecords)}
+              totalsRow={computeTotals(top5, ['orcado', 'realizado', 'variacao'])}
+            />
             />
           </div>
 
@@ -318,6 +322,7 @@ export default function AreasPage() {
               data={recursoData}
               onRowClick={(row) => openDetail(row.nome, drillRecords)}
               exportFilename={`recursos-${selectedArea}.csv`}
+              totalsRow={computeTotals(recursoData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
             />
           </div>
         </div>
