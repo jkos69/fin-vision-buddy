@@ -35,6 +35,7 @@ export function SearchCommand() {
       if (found.length >= 20) break;
       for (const [field, type, route] of [
         ['areaGrupo1', 'Área', '/areas'],
+        ['centroCusto', 'Centro Custo', '/centrocusto'],
         ['pacote', 'Pacote', '/pacotes'],
         ['recurso', 'Recurso', '/areas'],
         ['nomeFornecedor', 'Fornecedor', '/comparacao'],
