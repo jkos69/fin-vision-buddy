@@ -352,6 +352,7 @@ export default function CentroCustoPage() {
             data={ccData}
             onRowClick={(row) => setSelectedCC(row.codigo)}
             exportFilename={`centros-custo-${selectedArea}.csv`}
+            totalsRow={computeTotals(ccData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
           />
         </div>
       )}
@@ -388,6 +389,7 @@ export default function CentroCustoPage() {
               data={ccTop5}
               highlightTop={5}
               onRowClick={(row) => openDetail(row.nome)}
+              totalsRow={computeTotals(ccTop5, ['orcado', 'realizado', 'variacao'])}
             />
           </div>
 
@@ -398,6 +400,7 @@ export default function CentroCustoPage() {
               data={ccRecursoData}
               onRowClick={(row) => openDetail(row.nome)}
               exportFilename={`recursos-${selectedCC}.csv`}
+              totalsRow={computeTotals(ccRecursoData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
             />
           </div>
         </div>
