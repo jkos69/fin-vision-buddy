@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-colors';
 import { getMesesComReal, formatCurrency, formatCompact } from '@/lib/opex-utils';
+import { computeTotals } from '@/lib/totals-helper';
 import { MESES_PT, DIRETORIAS, type OPEXRecord } from '@/types/opex';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
 import { ExpenseDetailModal } from '@/components/ExpenseDetailModal';
@@ -273,6 +274,11 @@ export default function SGAPage() {
                 setDetailModal({ open: true, records: recs, title: `SG&A: ${row.nome}` });
               }}
               exportFilename="sga-detalhamento.csv"
+              totalsRow={(() => {
+                const t = computeTotals(tableData, ['mesOrc', 'mesReal', 'mesVarR', 'mesVarPct', 'acumOrc', 'acumReal', 'acumVarR', 'acumVarPct'], { orcadoKey: 'acumOrc', realizadoKey: 'acumReal', varPercentKey: 'acumVarPct' });
+                t.mesVarPct = t.mesOrc !== 0 ? ((t.mesReal - t.mesOrc) / t.mesOrc) * 100 : 0;
+                return t;
+              })()}
             />
           </div>
         </>

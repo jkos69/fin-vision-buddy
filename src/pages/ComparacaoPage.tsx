@@ -4,6 +4,7 @@ import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent, getSummary } from '@/lib/opex-utils';
+import { computeTotals } from '@/lib/totals-helper';
 import { MESES_PT } from '@/types/opex';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, ReferenceLine, Cell } from 'recharts';
 import { SortableTable, type ColumnDef } from '@/components/SortableTable';
@@ -232,7 +233,7 @@ export default function ComparacaoPage() {
                 </BarChart>
               </ResponsiveContainer>
 
-              <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${labelA}-vs-${labelB}.csv`} maxHeight="300px" />
+              <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${labelA}-vs-${labelB}.csv`} maxHeight="300px" totalsRow={computeTotals(compMerged, ['valA', 'valB', 'variacao', 'varPercent'], { orcadoKey: 'valA', realizadoKey: 'valB', varPercentKey: 'varPercent' })} />
             </>
           )}
         </div>
@@ -256,7 +257,7 @@ export default function ComparacaoPage() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          <SortableTable columns={waterfallColumns} data={waterfallData} exportFilename="waterfall-pacotes.csv" maxHeight="200px" />
+          <SortableTable columns={waterfallColumns} data={waterfallData} exportFilename="waterfall-pacotes.csv" maxHeight="200px" totalsRow={computeTotals(waterfallData, ['variacao'])} />
         </div>
 
         {/* Accumulated evolution */}
@@ -291,6 +292,7 @@ export default function ComparacaoPage() {
           data={areaData}
           onRowClick={(row) => openDetail(row.nome)}
           exportFilename={`semaforo-${semaforoField}.csv`}
+          totalsRow={computeTotals(areaData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
         />
       </div>
 

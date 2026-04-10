@@ -4,6 +4,7 @@ import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { groupBy, getMesesComReal, formatCurrency, formatPercent, getSemaforo } from '@/lib/opex-utils';
+import { computeTotals } from '@/lib/totals-helper';
 import { MESES_PT } from '@/types/opex';
 import { Building2, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -257,6 +258,7 @@ export default function AreasPage() {
           data={areaData}
           onRowClick={(row) => handleSelectArea(row.nome)}
           exportFilename={`areas-${selectedDiretoria}.csv`}
+          totalsRow={computeTotals(areaData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
         />
       )}
 
@@ -288,6 +290,7 @@ export default function AreasPage() {
                 data={ccData}
                 onRowClick={(row) => setSelectedCC(row.codigo)}
                 exportFilename={`centros-custo-${selectedArea}.csv`}
+                totalsRow={computeTotals(ccData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
               />
             </div>
           )}
@@ -307,6 +310,7 @@ export default function AreasPage() {
               data={top5}
               highlightTop={5}
               onRowClick={(row) => openDetail(row.nome, drillRecords)}
+              totalsRow={computeTotals(top5, ['orcado', 'realizado', 'variacao'])}
             />
           </div>
 
@@ -317,6 +321,7 @@ export default function AreasPage() {
               data={recursoData}
               onRowClick={(row) => openDetail(row.nome, drillRecords)}
               exportFilename={`recursos-${selectedArea}.csv`}
+              totalsRow={computeTotals(recursoData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
             />
           </div>
         </div>
@@ -354,6 +359,7 @@ export default function AreasPage() {
               data={ccTop5}
               highlightTop={5}
               onRowClick={(row) => openDetail(row.nome, ccRecords)}
+              totalsRow={computeTotals(ccTop5, ['orcado', 'realizado', 'variacao'])}
             />
           </div>
 
@@ -364,6 +370,7 @@ export default function AreasPage() {
               data={ccRecursoData}
               onRowClick={(row) => openDetail(row.nome, ccRecords)}
               exportFilename={`recursos-${selectedCC}.csv`}
+              totalsRow={computeTotals(ccRecursoData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
             />
           </div>
         </div>
