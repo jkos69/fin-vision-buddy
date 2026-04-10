@@ -233,7 +233,7 @@ export default function ComparacaoPage() {
                 </BarChart>
               </ResponsiveContainer>
 
-              <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${labelA}-vs-${labelB}.csv`} maxHeight="300px" />
+              <SortableTable columns={compColumns} data={compMerged} exportFilename={`comparacao-${labelA}-vs-${labelB}.csv`} maxHeight="300px" totalsRow={computeTotals(compMerged, ['valA', 'valB', 'variacao', 'varPercent'], { orcadoKey: 'valA', realizadoKey: 'valB', varPercentKey: 'varPercent' })} />
             </>
           )}
         </div>
@@ -257,7 +257,7 @@ export default function ComparacaoPage() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          <SortableTable columns={waterfallColumns} data={waterfallData} exportFilename="waterfall-pacotes.csv" maxHeight="200px" />
+          <SortableTable columns={waterfallColumns} data={waterfallData} exportFilename="waterfall-pacotes.csv" maxHeight="200px" totalsRow={computeTotals(waterfallData, ['variacao'])} />
         </div>
 
         {/* Accumulated evolution */}
@@ -292,6 +292,7 @@ export default function ComparacaoPage() {
           data={areaData}
           onRowClick={(row) => openDetail(row.nome)}
           exportFilename={`semaforo-${semaforoField}.csv`}
+          totalsRow={computeTotals(areaData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
         />
       </div>
 

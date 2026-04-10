@@ -359,6 +359,7 @@ export default function AreasPage() {
               data={ccTop5}
               highlightTop={5}
               onRowClick={(row) => openDetail(row.nome, ccRecords)}
+              totalsRow={computeTotals(ccTop5, ['orcado', 'realizado', 'variacao'])}
             />
           </div>
 
@@ -369,6 +370,7 @@ export default function AreasPage() {
               data={ccRecursoData}
               onRowClick={(row) => openDetail(row.nome, ccRecords)}
               exportFilename={`recursos-${selectedCC}.csv`}
+              totalsRow={computeTotals(ccRecursoData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
             />
           </div>
         </div>

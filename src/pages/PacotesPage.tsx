@@ -138,6 +138,7 @@ export default function PacotesPage() {
           data={pacoteOverview}
           onRowClick={(row) => setSelectedPacote(row.nome)}
           exportFilename="pacotes-overview.csv"
+          totalsRow={computeTotals(pacoteOverview, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
         />
       )}
 
@@ -173,12 +174,12 @@ export default function PacotesPage() {
 
           <div>
             <div className="px-1 py-2"><h3 className="text-sm font-semibold">Breakdown por Área</h3></div>
-            <SortableTable columns={areaColumns} data={areaBreakdown} onRowClick={(row) => openAreaDetail(row.nome)} exportFilename={`areas-${selectedPacote}.csv`} />
+            <SortableTable columns={areaColumns} data={areaBreakdown} onRowClick={(row) => openAreaDetail(row.nome)} exportFilename={`areas-${selectedPacote}.csv`} totalsRow={computeTotals(areaBreakdown, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])} />
           </div>
 
           <div>
             <div className="px-1 py-2"><h3 className="text-sm font-semibold">Detalhamento por Recurso</h3></div>
-            <SortableTable columns={recursoColumns} data={recursoBreakdown} onRowClick={(row) => openRecursoDetail(row.nome)} exportFilename={`recursos-${selectedPacote}.csv`} />
+            <SortableTable columns={recursoColumns} data={recursoBreakdown} onRowClick={(row) => openRecursoDetail(row.nome)} exportFilename={`recursos-${selectedPacote}.csv`} totalsRow={computeTotals(recursoBreakdown, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])} />
           </div>
         </div>
       )}
