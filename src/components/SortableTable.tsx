@@ -130,10 +130,8 @@ export function SortableTable<T extends Record<string, any>>({
                   </th>
                 ))}
               </tr>
-            </thead>
-            <tbody>
               {totalsRow && (
-                <tr className="border-b-2 border-primary/30 bg-primary/5 font-semibold sticky top-[calc(2.5rem)] z-[9]">
+                <tr className="border-b-2 border-primary/30 bg-card font-semibold">
                   {columns.map((col, colIdx) => {
                     const val = totalsRow[col.key];
                     const firstLeftIdx = columns.findIndex(c => c.align === 'left' || !c.align);
@@ -153,6 +151,8 @@ export function SortableTable<T extends Record<string, any>>({
                   })}
                 </tr>
               )}
+            </thead>
+            <tbody>
               {sortedData.length === 0 && (
                 <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">{emptyMessage}</td></tr>
               )}
