@@ -132,7 +132,27 @@ export function SortableTable<T extends Record<string, any>>({
               </tr>
             </thead>
             <tbody>
-              {sortedData.length === 0 && (
+              {totalsRow && (
+                <tr className="border-b-2 border-primary/30 bg-primary/5 font-semibold sticky top-[calc(2.5rem)] z-[9]">
+                  {columns.map((col, colIdx) => {
+                    const val = totalsRow[col.key];
+                    const firstLeftIdx = columns.findIndex(c => c.align === 'left' || !c.align);
+                    if (val === undefined || val === null || val === '') {
+                      if (colIdx === firstLeftIdx) {
+                        return <td key={col.key} className="px-4 py-2.5 text-xs font-bold text-primary">TOTAL</td>;
+                      }
+                      return <td key={col.key} className="px-4 py-2.5"></td>;
+                    }
+                    const isVar = col.key.toLowerCase().includes('variacao') || col.key.toLowerCase().includes('variação') || col.key.toLowerCase().includes('varpercent');
+                    const colorClass = isVar && typeof val === 'number' ? (val > 0 ? 'text-destructive' : val < 0 ? 'text-success' : 'text-foreground') : 'text-foreground';
+                    return (
+                      <td key={col.key} className={`px-4 py-2.5 text-xs font-mono font-bold ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'} ${colorClass}`}>
+                        {col.format === 'currency' ? formatCurrency(val) : col.format === 'percent' ? formatPercent(val) : col.format === 'number' ? Number(val).toLocaleString('pt-BR') : String(val)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              )}
                 <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">{emptyMessage}</td></tr>
               )}
               {sortedData.map((row, idx) => (
