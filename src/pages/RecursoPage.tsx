@@ -28,6 +28,7 @@ export default function RecursoPage() {
   const [selectedRecurso, setSelectedRecurso] = useState<string | null>(null);
   const [selectedDiretoria, setSelectedDiretoria] = useState<string | null>(null);
   const [selectedCC, setSelectedCC] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'diretoria' | 'todosCCs'>('diretoria');
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
