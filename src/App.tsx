@@ -14,6 +14,7 @@ import ComparacaoPage from "./pages/ComparacaoPage";
 import UploadPage from "./pages/UploadPage";
 import SGAPage from "./pages/SGAPage";
 import CentroCustoPage from "./pages/CentroCustoPage";
+import RecursoPage from "./pages/RecursoPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ function AppRoutes() {
           <Route path="/pacotes" element={<PacotesPage />} />
           <Route path="/comparacao" element={<ComparacaoPage />} />
           <Route path="/centrocusto" element={<CentroCustoPage />} />
+          <Route path="/recurso" element={<RecursoPage />} />
           <Route path="/sga" element={<SGAPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="*" element={<NotFound />} />
