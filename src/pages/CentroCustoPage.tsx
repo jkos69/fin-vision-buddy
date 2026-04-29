@@ -191,8 +191,8 @@ export default function CentroCustoPage() {
 
   // Level 4: CC drill-down
   const ccRecords = selectedCC ? filteredRecords.filter(r => r.centroCusto === selectedCC) : [];
-  const ccPacoteData = selectedCC ? groupBy(ccRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
-  const ccRecursoData = selectedCC ? groupBy(ccRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const ccPacoteData = selectedCC ? groupBy(ccRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
+  const ccRecursoData = selectedCC ? groupBy(ccRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
   const ccTop5 = ccRecursoData.slice(0, 5);
   const ccTotal = ccRecursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
   const ccDescricao = ccRecords[0]?.descricaoCCusto || '';

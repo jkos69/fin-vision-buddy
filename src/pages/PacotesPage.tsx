@@ -34,7 +34,7 @@ export default function PacotesPage() {
   }, [searchParams, filteredRecords]);
   const mesesComReal = getMesesComReal(filteredRecords);
 
-  const pacoteOverview = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(p => p.orcado > 0 || p.realizado > 0);
+  const pacoteOverview = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(p => p.orcado !== 0 || p.realizado !== 0);
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
   const orcLabel = isMensal ? `Orçado ${MESES_PT[mesSelecionado! - 1]}` : 'Orçado YTD';
@@ -42,8 +42,8 @@ export default function PacotesPage() {
   const marginLeft = isMobile ? 100 : 160;
 
   const drillRecords = selectedPacote ? filteredRecords.filter(r => r.pacote === selectedPacote) : [];
-  const areaBreakdown = selectedPacote ? groupBy(drillRecords, 'areaGrupo1', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
-  const recursoBreakdown = selectedPacote ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0) : [];
+  const areaBreakdown = selectedPacote ? groupBy(drillRecords, 'areaGrupo1', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
+  const recursoBreakdown = selectedPacote ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
 
   const monthlyEvolution = selectedPacote ? Array.from({ length: 12 }, (_, i) => {
     const mes = i + 1;

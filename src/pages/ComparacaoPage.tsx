@@ -51,7 +51,7 @@ export default function ComparacaoPage() {
 
   const semaforoField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
   const semaforoLabel = isCEO || isDiretoria ? 'Área' : 'Recurso';
-  const areaData = groupBy(filteredRecords, semaforoField as keyof typeof filteredRecords[0], mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado > 0 || d.realizado > 0);
+  const areaData = groupBy(filteredRecords, semaforoField as keyof typeof filteredRecords[0], mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0);
   const pacoteData = groupBy(filteredRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.variacao !== 0);
   const waterfallData = pacoteData.sort((a, b) => b.variacao - a.variacao).map(p => ({
     nome: p.nome.replace('PACOTE ', ''),
