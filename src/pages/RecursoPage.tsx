@@ -28,6 +28,7 @@ export default function RecursoPage() {
   const [selectedRecurso, setSelectedRecurso] = useState<string | null>(null);
   const [selectedDiretoria, setSelectedDiretoria] = useState<string | null>(null);
   const [selectedCC, setSelectedCC] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'diretoria' | 'todosCCs'>('diretoria');
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [detailModal, setDetailModal] = useState<{ open: boolean; records: any[]; title: string }>({ open: false, records: [], title: '' });
@@ -166,6 +167,37 @@ export default function RecursoPage() {
       .sort((a, b) => Math.abs(b.realizado || b.orcado) - Math.abs(a.realizado || a.orcado));
   }, [filteredRecords, selectedRecurso, selectedDiretoria, isMensal, mesSelecionado, mesesComReal]);
 
+  // Flat view: ALL CCs that use the selected Recurso (across all Diretorias)
+  const allCCsData = useMemo(() => {
+    if (!selectedRecurso) return [];
+    const recs = filteredRecords.filter(r => (r.recurso || '(sem recurso)') === selectedRecurso);
+    const groups = new Map<string, { codigo: string; descricao: string; area: string; diretoria: string; orcado: number; realizado: number }>();
+    recs.forEach(r => {
+      const key = r.centroCusto || '(sem CC)';
+      if (!groups.has(key)) groups.set(key, { codigo: r.centroCusto, descricao: r.descricaoCCusto, area: r.areaGrupo1, diretoria: r.diretoria, orcado: 0, realizado: 0 });
+      const g = groups.get(key)!;
+      if (r.base === 'ORÇ26') {
+        if (isMensal) { if (r.mes === mesSelecionado) g.orcado += r.executado; }
+        else if (mesesComReal.includes(r.mes)) g.orcado += r.executado;
+      }
+      if (r.base === 'REAL26') {
+        if (isMensal) { if (r.mes === mesSelecionado) g.realizado += r.executado; }
+        else g.realizado += r.executado;
+      }
+    });
+    return Array.from(groups.values())
+      .map(g => ({
+        codigo: g.codigo, descricao: g.descricao, area: g.area, diretoria: g.diretoria,
+        nome: `${g.codigo} - ${g.descricao}`,
+        orcado: g.orcado, realizado: g.realizado,
+        variacao: g.realizado - g.orcado,
+        variacaoPercent: g.orcado !== 0 ? ((g.realizado - g.orcado) / g.orcado) * 100 : 0,
+        semaforo: getSemaforo(g.realizado, g.orcado),
+      }))
+      .filter(d => d.orcado !== 0 || d.realizado !== 0)
+      .sort((a, b) => Math.abs(b.realizado || b.orcado) - Math.abs(a.realizado || a.orcado));
+  }, [filteredRecords, selectedRecurso, isMensal, mesSelecionado, mesesComReal]);
+
   const recursoTotals = selectedRecurso ? accumulate(filteredRecords.filter(r => (r.recurso || '(sem recurso)') === selectedRecurso)) : { orcado: 0, realizado: 0 };
 
   const recursoColumns: ColumnDef[] = [
@@ -192,6 +224,18 @@ export default function RecursoPage() {
   const ccColumns: ColumnDef[] = [
     { key: 'codigo', label: 'Código', align: 'left' },
     { key: 'descricao', label: 'Descrição', align: 'left' },
+    { key: 'area', label: 'Área', align: 'left' },
+    { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
+    { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
+    { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
+    { key: 'variacaoPercent', label: 'Var %', align: 'right', format: 'percent' },
+    { key: 'semaforo', label: 'Status', align: 'center', sortable: false, render: (v) => <SemaforoIcon status={v} /> },
+  ];
+
+  const allCCsColumns: ColumnDef[] = [
+    { key: 'codigo', label: 'Código', align: 'left' },
+    { key: 'descricao', label: 'Descrição', align: 'left' },
+    { key: 'diretoria', label: 'Diretoria', align: 'left' },
     { key: 'area', label: 'Área', align: 'left' },
     { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
     { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
@@ -337,18 +381,52 @@ export default function RecursoPage() {
             </div>
           </div>
 
-          <div>
-            <div className="px-1 py-2">
-              <h3 className="text-sm font-semibold">Diretorias que usam {selectedRecurso} ({diretoriasData.length})</h3>
-            </div>
-            <SortableTable
-              columns={diretoriaColumns}
-              data={diretoriasData}
-              onRowClick={(row) => setSelectedDiretoria(row.nome)}
-              exportFilename={`recurso-${selectedRecurso}-diretorias.csv`}
-              totalsRow={computeTotals(diretoriasData, ['orcado', 'realizado', 'variacao', 'variacaoPercent', 'qtdCCs'])}
-            />
+          {/* View mode toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground mr-1">Visualizar:</span>
+            <button
+              onClick={() => setViewMode('diretoria')}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${viewMode === 'diretoria' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+            >
+              Por Diretoria (drill-down)
+            </button>
+            <button
+              onClick={() => setViewMode('todosCCs')}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${viewMode === 'todosCCs' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+            >
+              Todos os CCs (lista plana)
+            </button>
           </div>
+
+          {viewMode === 'diretoria' ? (
+            <div>
+              <div className="px-1 py-2">
+                <h3 className="text-sm font-semibold">Diretorias que usam {selectedRecurso} ({diretoriasData.length})</h3>
+                <p className="text-xs text-muted-foreground">Clique numa diretoria para ver seus centros de custo</p>
+              </div>
+              <SortableTable
+                columns={diretoriaColumns}
+                data={diretoriasData}
+                onRowClick={(row) => setSelectedDiretoria(row.nome)}
+                exportFilename={`recurso-${selectedRecurso}-diretorias.csv`}
+                totalsRow={computeTotals(diretoriasData, ['orcado', 'realizado', 'variacao', 'variacaoPercent', 'qtdCCs'])}
+              />
+            </div>
+          ) : (
+            <div>
+              <div className="px-1 py-2">
+                <h3 className="text-sm font-semibold">Todos os Centros de Custo que usam {selectedRecurso} ({allCCsData.length})</h3>
+                <p className="text-xs text-muted-foreground">Clique numa linha para ver os lançamentos detalhados</p>
+              </div>
+              <SortableTable
+                columns={allCCsColumns}
+                data={allCCsData}
+                onRowClick={(row) => openCCDetail(row.codigo)}
+                exportFilename={`recurso-${selectedRecurso}-todos-ccs.csv`}
+                totalsRow={computeTotals(allCCsData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
+              />
+            </div>
+          )}
         </div>
       )}
 
