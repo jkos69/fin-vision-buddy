@@ -94,7 +94,7 @@ export default function Dashboard() {
   const varField = isCEO || isDiretoria ? 'areaGrupo1' : 'recurso';
   const varTitle = isCEO || isDiretoria ? 'Maiores Variações por Área' : 'Maiores Variações por Recurso';
   const varData = groupBy(filteredRecords, varField as keyof typeof filteredRecords[0], mesesComReal, periodoView, mesSelecionado)
-    .filter(d => d.orcado > 0 || d.realizado > 0);
+    .filter(d => d.orcado !== 0 || d.realizado !== 0);
   const topPositive = [...varData].sort((a, b) => b.variacao - a.variacao).slice(0, 5).filter(d => d.variacao > 0);
   const topNegative = [...varData].sort((a, b) => a.variacao - b.variacao).slice(0, 5).filter(d => d.variacao < 0);
 
