@@ -381,18 +381,52 @@ export default function RecursoPage() {
             </div>
           </div>
 
-          <div>
-            <div className="px-1 py-2">
-              <h3 className="text-sm font-semibold">Diretorias que usam {selectedRecurso} ({diretoriasData.length})</h3>
-            </div>
-            <SortableTable
-              columns={diretoriaColumns}
-              data={diretoriasData}
-              onRowClick={(row) => setSelectedDiretoria(row.nome)}
-              exportFilename={`recurso-${selectedRecurso}-diretorias.csv`}
-              totalsRow={computeTotals(diretoriasData, ['orcado', 'realizado', 'variacao', 'variacaoPercent', 'qtdCCs'])}
-            />
+          {/* View mode toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground mr-1">Visualizar:</span>
+            <button
+              onClick={() => setViewMode('diretoria')}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${viewMode === 'diretoria' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+            >
+              Por Diretoria (drill-down)
+            </button>
+            <button
+              onClick={() => setViewMode('todosCCs')}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${viewMode === 'todosCCs' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+            >
+              Todos os CCs (lista plana)
+            </button>
           </div>
+
+          {viewMode === 'diretoria' ? (
+            <div>
+              <div className="px-1 py-2">
+                <h3 className="text-sm font-semibold">Diretorias que usam {selectedRecurso} ({diretoriasData.length})</h3>
+                <p className="text-xs text-muted-foreground">Clique numa diretoria para ver seus centros de custo</p>
+              </div>
+              <SortableTable
+                columns={diretoriaColumns}
+                data={diretoriasData}
+                onRowClick={(row) => setSelectedDiretoria(row.nome)}
+                exportFilename={`recurso-${selectedRecurso}-diretorias.csv`}
+                totalsRow={computeTotals(diretoriasData, ['orcado', 'realizado', 'variacao', 'variacaoPercent', 'qtdCCs'])}
+              />
+            </div>
+          ) : (
+            <div>
+              <div className="px-1 py-2">
+                <h3 className="text-sm font-semibold">Todos os Centros de Custo que usam {selectedRecurso} ({allCCsData.length})</h3>
+                <p className="text-xs text-muted-foreground">Clique numa linha para ver os lançamentos detalhados</p>
+              </div>
+              <SortableTable
+                columns={allCCsColumns}
+                data={allCCsData}
+                onRowClick={(row) => openCCDetail(row.codigo)}
+                exportFilename={`recurso-${selectedRecurso}-todos-ccs.csv`}
+                totalsRow={computeTotals(allCCsData, ['orcado', 'realizado', 'variacao', 'variacaoPercent'])}
+              />
+            </div>
+          )}
         </div>
       )}
 
