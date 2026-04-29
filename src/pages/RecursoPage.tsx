@@ -232,6 +232,18 @@ export default function RecursoPage() {
     { key: 'semaforo', label: 'Status', align: 'center', sortable: false, render: (v) => <SemaforoIcon status={v} /> },
   ];
 
+  const allCCsColumns: ColumnDef[] = [
+    { key: 'codigo', label: 'Código', align: 'left' },
+    { key: 'descricao', label: 'Descrição', align: 'left' },
+    { key: 'diretoria', label: 'Diretoria', align: 'left' },
+    { key: 'area', label: 'Área', align: 'left' },
+    { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
+    { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
+    { key: 'variacao', label: 'Variação R$', align: 'right', format: 'currency' },
+    { key: 'variacaoPercent', label: 'Var %', align: 'right', format: 'percent' },
+    { key: 'semaforo', label: 'Status', align: 'center', sortable: false, render: (v) => <SemaforoIcon status={v} /> },
+  ];
+
   const openCCDetail = (codigo: string) => {
     const recs = filteredRecords.filter(r =>
       r.centroCusto === codigo &&
