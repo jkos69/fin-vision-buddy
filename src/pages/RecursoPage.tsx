@@ -167,6 +167,37 @@ export default function RecursoPage() {
       .sort((a, b) => Math.abs(b.realizado || b.orcado) - Math.abs(a.realizado || a.orcado));
   }, [filteredRecords, selectedRecurso, selectedDiretoria, isMensal, mesSelecionado, mesesComReal]);
 
+  // Flat view: ALL CCs that use the selected Recurso (across all Diretorias)
+  const allCCsData = useMemo(() => {
+    if (!selectedRecurso) return [];
+    const recs = filteredRecords.filter(r => (r.recurso || '(sem recurso)') === selectedRecurso);
+    const groups = new Map<string, { codigo: string; descricao: string; area: string; diretoria: string; orcado: number; realizado: number }>();
+    recs.forEach(r => {
+      const key = r.centroCusto || '(sem CC)';
+      if (!groups.has(key)) groups.set(key, { codigo: r.centroCusto, descricao: r.descricaoCCusto, area: r.areaGrupo1, diretoria: r.diretoria, orcado: 0, realizado: 0 });
+      const g = groups.get(key)!;
+      if (r.base === 'ORÇ26') {
+        if (isMensal) { if (r.mes === mesSelecionado) g.orcado += r.executado; }
+        else if (mesesComReal.includes(r.mes)) g.orcado += r.executado;
+      }
+      if (r.base === 'REAL26') {
+        if (isMensal) { if (r.mes === mesSelecionado) g.realizado += r.executado; }
+        else g.realizado += r.executado;
+      }
+    });
+    return Array.from(groups.values())
+      .map(g => ({
+        codigo: g.codigo, descricao: g.descricao, area: g.area, diretoria: g.diretoria,
+        nome: `${g.codigo} - ${g.descricao}`,
+        orcado: g.orcado, realizado: g.realizado,
+        variacao: g.realizado - g.orcado,
+        variacaoPercent: g.orcado !== 0 ? ((g.realizado - g.orcado) / g.orcado) * 100 : 0,
+        semaforo: getSemaforo(g.realizado, g.orcado),
+      }))
+      .filter(d => d.orcado !== 0 || d.realizado !== 0)
+      .sort((a, b) => Math.abs(b.realizado || b.orcado) - Math.abs(a.realizado || a.orcado));
+  }, [filteredRecords, selectedRecurso, isMensal, mesSelecionado, mesesComReal]);
+
   const recursoTotals = selectedRecurso ? accumulate(filteredRecords.filter(r => (r.recurso || '(sem recurso)') === selectedRecurso)) : { orcado: 0, realizado: 0 };
 
   const recursoColumns: ColumnDef[] = [
