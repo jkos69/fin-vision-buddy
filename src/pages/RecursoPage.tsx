@@ -329,6 +329,23 @@ export default function RecursoPage() {
       {/* Level 1: All resources */}
       {showLevel1 && (
         <div className="space-y-4">
+          {/* View mode toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground mr-1">Ao clicar num recurso:</span>
+            <button
+              onClick={() => setViewMode('diretoria')}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${viewMode === 'diretoria' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+            >
+              Selecionar Diretoria → CC
+            </button>
+            <button
+              onClick={() => setViewMode('todosCCs')}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${viewMode === 'todosCCs' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+            >
+              Ver todos os CCs direto
+            </button>
+          </div>
+
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
               <Boxes className="h-4 w-4 text-primary" />
@@ -361,7 +378,7 @@ export default function RecursoPage() {
         </div>
       )}
 
-      {/* Level 2: Diretorias for selected Recurso */}
+      {/* Level 2: depending on viewMode */}
       {showLevel2 && (
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -379,23 +396,6 @@ export default function RecursoPage() {
                 {formatCurrency(recursoTotals.realizado - recursoTotals.orcado)}
               </p>
             </div>
-          </div>
-
-          {/* View mode toggle */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground mr-1">Visualizar:</span>
-            <button
-              onClick={() => setViewMode('diretoria')}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${viewMode === 'diretoria' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
-            >
-              Por Diretoria (drill-down)
-            </button>
-            <button
-              onClick={() => setViewMode('todosCCs')}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${viewMode === 'todosCCs' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
-            >
-              Todos os CCs (lista plana)
-            </button>
           </div>
 
           {viewMode === 'diretoria' ? (
