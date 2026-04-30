@@ -26,7 +26,7 @@ const SGA_COLORS = [
   'hsl(15, 80%, 55%)',
 ];
 
-type SGAFilter = 'comerciais' | 'gerais' | 'todas' | 'custos';
+type SGAFilter = 'comerciais' | 'gerais' | 'pessoal' | 'logistica' | 'todas' | 'custos';
 
 function getSubcategoria(agrupamento: string): string {
   const parts = agrupamento.split('-');
@@ -42,7 +42,9 @@ function matchesSGAFilter(agrupamento: string, filter: SGAFilter): boolean {
   switch (filter) {
     case 'comerciais': return cat.startsWith('Despesas com Comercial') || cat.startsWith('Despesas Comerciais');
     case 'gerais': return cat.startsWith('Despesas Gerais e Adm');
-    case 'todas': return cat.startsWith('Despesas com Comercial') || cat.startsWith('Despesas Comerciais') || cat.startsWith('Despesas Gerais e Adm');
+    case 'pessoal': return cat.startsWith('Despesa com Pessoal');
+    case 'logistica': return cat.startsWith('Despesas com Logistica de Vendas') || cat.startsWith('Despesas com Logística de Vendas');
+    case 'todas': return cat.startsWith('Despesas com Comercial') || cat.startsWith('Despesas Comerciais') || cat.startsWith('Despesas Gerais e Adm') || cat.startsWith('Despesa com Pessoal') || cat.startsWith('Despesas com Logistica de Vendas') || cat.startsWith('Despesas com Logística de Vendas');
     case 'custos': return cat.startsWith('Custo Direto') || cat.startsWith('Custo Indireto');
   }
 }
@@ -150,7 +152,9 @@ export default function SGAPage() {
 
   const filterOptions: { value: SGAFilter; label: string }[] = [
     { value: 'todas', label: 'Todas SG&A' },
+    { value: 'pessoal', label: 'Desp. Pessoal' },
     { value: 'comerciais', label: 'Desp. Comerciais' },
+    { value: 'logistica', label: 'Desp. Logística Vendas' },
     { value: 'gerais', label: 'Desp. Gerais e Adm.' },
     { value: 'custos', label: 'Custos' },
   ];
