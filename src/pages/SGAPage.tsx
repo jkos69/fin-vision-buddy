@@ -26,7 +26,7 @@ const SGA_COLORS = [
   'hsl(15, 80%, 55%)',
 ];
 
-type SGAFilter = 'comerciais' | 'gerais' | 'todas' | 'custos';
+type SGAFilter = 'comerciais' | 'gerais' | 'pessoal' | 'logistica' | 'todas' | 'custos';
 
 function getSubcategoria(agrupamento: string): string {
   const parts = agrupamento.split('-');
@@ -42,7 +42,9 @@ function matchesSGAFilter(agrupamento: string, filter: SGAFilter): boolean {
   switch (filter) {
     case 'comerciais': return cat.startsWith('Despesas com Comercial') || cat.startsWith('Despesas Comerciais');
     case 'gerais': return cat.startsWith('Despesas Gerais e Adm');
-    case 'todas': return cat.startsWith('Despesas com Comercial') || cat.startsWith('Despesas Comerciais') || cat.startsWith('Despesas Gerais e Adm');
+    case 'pessoal': return cat.startsWith('Despesa com Pessoal');
+    case 'logistica': return cat.startsWith('Despesas com Logistica de Vendas') || cat.startsWith('Despesas com Logística de Vendas');
+    case 'todas': return cat.startsWith('Despesas com Comercial') || cat.startsWith('Despesas Comerciais') || cat.startsWith('Despesas Gerais e Adm') || cat.startsWith('Despesa com Pessoal') || cat.startsWith('Despesas com Logistica de Vendas') || cat.startsWith('Despesas com Logística de Vendas');
     case 'custos': return cat.startsWith('Custo Direto') || cat.startsWith('Custo Indireto');
   }
 }
@@ -150,7 +152,9 @@ export default function SGAPage() {
 
   const filterOptions: { value: SGAFilter; label: string }[] = [
     { value: 'todas', label: 'Todas SG&A' },
+    { value: 'pessoal', label: 'Desp. Pessoal' },
     { value: 'comerciais', label: 'Desp. Comerciais' },
+    { value: 'logistica', label: 'Desp. Logística Vendas' },
     { value: 'gerais', label: 'Desp. Gerais e Adm.' },
     { value: 'custos', label: 'Custos' },
   ];
@@ -231,34 +235,6 @@ export default function SGAPage() {
                 {acumVar >= 0 ? '+' : ''}{acumVar.toFixed(0)}K ({acumVarPct >= 0 ? '+' : ''}{acumVarPct.toFixed(1)}%)
               </span>
             </div>
-          </div>
-
-          {/* Stacked bar chart */}
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold mb-4">Composição por Subcategoria</h3>
-            <ResponsiveContainer width="100%" height={450}>
-              <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                <XAxis dataKey="name" tick={{ fill: colors.axis, fontSize: 11 }} />
-                <YAxis tick={{ fill: colors.axis, fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(0)}`} label={{ value: 'R$ mil', angle: -90, position: 'insideLeft', style: { fill: colors.axis, fontSize: 10 } }} />
-                <Tooltip content={<SGATooltip />} />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
-                {subcategorias.map((sub, i) => (
-                  <Bar
-                    key={sub}
-                    dataKey={sub}
-                    stackId="a"
-                    fill={SGA_COLORS[i % SGA_COLORS.length]}
-                    name={sub}
-                    cursor="pointer"
-                    onClick={() => {
-                      const recs = sgaRecords.filter(r => getSubcategoria(r.agrupamento) === sub);
-                      setDetailModal({ open: true, records: recs, title: `SG&A: ${sub}` });
-                    }}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
           </div>
 
           {/* Detail table */}
