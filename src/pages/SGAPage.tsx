@@ -237,34 +237,6 @@ export default function SGAPage() {
             </div>
           </div>
 
-          {/* Stacked bar chart */}
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold mb-4">Composição por Subcategoria</h3>
-            <ResponsiveContainer width="100%" height={450}>
-              <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                <XAxis dataKey="name" tick={{ fill: colors.axis, fontSize: 11 }} />
-                <YAxis tick={{ fill: colors.axis, fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(0)}`} label={{ value: 'R$ mil', angle: -90, position: 'insideLeft', style: { fill: colors.axis, fontSize: 10 } }} />
-                <Tooltip content={<SGATooltip />} />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
-                {subcategorias.map((sub, i) => (
-                  <Bar
-                    key={sub}
-                    dataKey={sub}
-                    stackId="a"
-                    fill={SGA_COLORS[i % SGA_COLORS.length]}
-                    name={sub}
-                    cursor="pointer"
-                    onClick={() => {
-                      const recs = sgaRecords.filter(r => getSubcategoria(r.agrupamento) === sub);
-                      setDetailModal({ open: true, records: recs, title: `SG&A: ${sub}` });
-                    }}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
           {/* Detail table */}
           <div>
             <div className="px-1 py-2">
