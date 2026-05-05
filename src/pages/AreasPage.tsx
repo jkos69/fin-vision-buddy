@@ -70,8 +70,6 @@ export default function AreasPage() {
   const drillRecords = selectedArea ? areaRecords.filter(r => r.areaGrupo1 === selectedArea) : [];
   const pacoteData = selectedArea ? groupBy(drillRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
   const recursoData = selectedArea && !selectedCC ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
-  const top5 = recursoData.slice(0, 5);
-  const totalArea = recursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
 
   // Centro de Custo data
   const ccData = selectedArea ? (() => {
@@ -119,8 +117,6 @@ export default function AreasPage() {
   const ccRecords = selectedCC ? drillRecords.filter(r => r.centroCusto === selectedCC) : [];
   const ccPacoteData = selectedCC ? groupBy(ccRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
   const ccRecursoData = selectedCC ? groupBy(ccRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
-  const ccTop5 = ccRecursoData.slice(0, 5);
-  const ccTotal = ccRecursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
   const ccDescricao = ccRecords[0]?.descricaoCCusto || '';
 
   const isMensal = periodoView === 'mensal' && mesSelecionado;
@@ -295,25 +291,6 @@ export default function AreasPage() {
             </div>
           )}
 
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold mb-4">Top 5 Maiores Custos (por Recurso)</h3>
-            <SortableTable
-              columns={[
-                { key: '_rank', label: '#', align: 'center', sortable: false, render: (_, __, i) => <span className="text-primary font-bold">#{i!+1}</span> },
-                { key: 'nome', label: 'Recurso', align: 'left' },
-                { key: '_valor', label: 'Valor', align: 'right', format: 'currency', render: (_, row) => formatCurrency(row.realizado || row.orcado) },
-                { key: '_pct', label: '% Total', align: 'right', render: (_, row) => `${totalArea > 0 ? ((row.realizado || row.orcado) / totalArea * 100).toFixed(1) : 0}%` },
-                { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
-                { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
-                { key: 'variacao', label: 'Variação', align: 'right', format: 'currency' },
-              ]}
-              data={top5}
-              highlightTop={5}
-              onRowClick={(row) => openDetail(row.nome, drillRecords)}
-              totalsRow={computeTotals(top5, ['orcado', 'realizado', 'variacao'])}
-            />
-          </div>
-
           <div>
             <div className="px-1 py-2"><h3 className="text-sm font-semibold">Detalhamento por Recurso</h3></div>
             <SortableTable
@@ -342,25 +319,6 @@ export default function AreasPage() {
                 <Bar dataKey="realizado" name="Realizado" fill={colors.realizado} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold mb-4">Top 5 Maiores Custos</h3>
-            <SortableTable
-              columns={[
-                { key: '_rank', label: '#', align: 'center', sortable: false, render: (_, __, i) => <span className="text-primary font-bold">#{i!+1}</span> },
-                { key: 'nome', label: 'Recurso', align: 'left' },
-                { key: '_valor', label: 'Valor', align: 'right', format: 'currency', render: (_, row) => formatCurrency(row.realizado || row.orcado) },
-                { key: '_pct', label: '% Total', align: 'right', render: (_, row) => `${ccTotal > 0 ? ((row.realizado || row.orcado) / ccTotal * 100).toFixed(1) : 0}%` },
-                { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
-                { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
-                { key: 'variacao', label: 'Variação', align: 'right', format: 'currency' },
-              ]}
-              data={ccTop5}
-              highlightTop={5}
-              onRowClick={(row) => openDetail(row.nome, ccRecords)}
-              totalsRow={computeTotals(ccTop5, ['orcado', 'realizado', 'variacao'])}
-            />
           </div>
 
           <div>
