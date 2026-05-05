@@ -29,7 +29,9 @@ export function CapexFileUpload({ onUploaded }: Props) {
       const recs = await parseCapexFile(file, (current, total) => {
         const pct = Math.round((current / total) * 100);
         setProgress(pct);
-        setMessage(`Lendo planilha... ${current.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} linhas`);
+        setMessage(current === 0
+          ? 'Preparando leitura da planilha...'
+          : `Lendo planilha... ${current.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} linhas`);
       });
       setRecords(recs);
       setStatus('validating');
