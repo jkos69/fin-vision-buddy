@@ -4,10 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CapexFileUpload } from '@/components/CapexFileUpload';
 import { SortableTable, ColumnDef } from '@/components/SortableTable';
+import { CapexDrillModal, DrillState } from '@/components/CapexDrillModal';
 import { formatCurrency, formatPercent } from '@/lib/opex-utils';
 import { computeTotals } from '@/lib/totals-helper';
 import { MESES_PT } from '@/types/opex';
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface DBRow {
   id: string;
@@ -15,10 +16,19 @@ interface DBRow {
   tipo: string | null;
   diretoria: string | null;
   area: string | null;
+  centro_custo: string | null;
+  desc_centro_custo: string | null;
   nome_projeto: string | null;
   sponsor_projeto: string | null;
   projeto_novo: string | null;
   grupo_pacotes: string | null;
+  responsavel_area: string | null;
+  razao_social: string | null;
+  historico: string | null;
+  data_lancamento: string | null;
+  nf_numero: string | null;
+  conta_contabil: string | null;
+  desc_conta_contabil: string | null;
   executado: number;
   mes_num: number;
 }
@@ -27,12 +37,21 @@ interface UploadInfo { uploaded_at: string; uploaded_by: string; file_name: stri
 
 type PeriodView = 'ytd' | 'mensal';
 type TipoFilter = 'all' | 'Capex' | 'FOLHA';
+type BaseFilter = 'all' | 'orc' | 'real';
+type ViewMode = 'diretoria' | 'projeto' | 'pacote';
 
 function fmtCompact(v: number): string {
   const a = Math.abs(v);
   if (a >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace('.', ',')}M`;
   if (a >= 1_000) return `R$ ${(v / 1_000).toFixed(0)}k`;
   return formatCurrency(v);
+}
+
+function inPeriod(r: DBRow, periodView: PeriodView, mesSel: number, lastReal: number): boolean {
+  if (periodView === 'mensal') return r.mes_num === mesSel;
+  const limite = lastReal || 12;
+  if (r.base === 'orc') return r.mes_num <= limite;
+  return true;
 }
 
 export default function CapexPage() {
@@ -46,20 +65,23 @@ export default function CapexPage() {
   const [periodView, setPeriodView] = useState<PeriodView>('ytd');
   const [mesSel, setMesSel] = useState<number>(1);
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>('Capex');
+  const [baseFilter, setBaseFilter] = useState<BaseFilter>('all');
   const [diretoria, setDiretoria] = useState<string>('Todas');
   const [area, setArea] = useState<string>('Todas');
   const [projeto, setProjeto] = useState<string>('Todos');
   const [pacote, setPacote] = useState<string>('Todos');
+
+  const [viewMode, setViewMode] = useState<ViewMode>('projeto');
+  const [drill, setDrill] = useState<DrillState | null>(null);
 
   const reload = async () => {
     setLoading(true);
     const PAGE = 1000;
     let from = 0;
     const all: DBRow[] = [];
-    // Paginate beyond 1000
     while (true) {
       const { data, error } = await supabase.from('capex_records')
-        .select('id, base, tipo, diretoria, area, nome_projeto, sponsor_projeto, projeto_novo, grupo_pacotes, executado, mes_num')
+        .select('id, base, tipo, diretoria, area, centro_custo, desc_centro_custo, nome_projeto, sponsor_projeto, projeto_novo, grupo_pacotes, responsavel_area, razao_social, historico, data_lancamento, nf_numero, conta_contabil, desc_conta_contabil, executado, mes_num')
         .range(from, from + PAGE - 1);
       if (error) { console.error(error); break; }
       if (!data || data.length === 0) break;
@@ -78,13 +100,13 @@ export default function CapexPage() {
   const mesesComReal = useMemo(() => [...new Set(rows.filter(r => r.base === 'real').map(r => r.mes_num))].sort((a, b) => a - b), [rows]);
   const lastReal = mesesComReal[mesesComReal.length - 1] || 0;
 
-  // Filter options
   const allDir = useMemo(() => [...new Set(rows.map(r => r.diretoria || '').filter(Boolean))].sort(), [rows]);
   const allArea = useMemo(() => [...new Set(rows.filter(r => diretoria === 'Todas' || r.diretoria === diretoria).map(r => r.area || '').filter(Boolean))].sort(), [rows, diretoria]);
   const allProj = useMemo(() => [...new Set(rows.map(r => r.nome_projeto || '').filter(Boolean))].sort(), [rows]);
   const allPac = useMemo(() => [...new Set(rows.map(r => (r.grupo_pacotes || '').trim()).filter(Boolean))].sort(), [rows]);
 
-  const filtered = useMemo(() => rows.filter(r => {
+  // filteredSemBase: applies all filters except baseFilter (used for tables that compare orc vs real)
+  const filteredSemBase = useMemo(() => rows.filter(r => {
     if (tipoFilter !== 'all' && r.tipo !== tipoFilter) return false;
     if (diretoria !== 'Todas' && r.diretoria !== diretoria) return false;
     if (area !== 'Todas' && r.area !== area) return false;
@@ -93,60 +115,86 @@ export default function CapexPage() {
     return true;
   }), [rows, tipoFilter, diretoria, area, projeto, pacote]);
 
-  // KPIs
+  const filtered = useMemo(() => filteredSemBase.filter(r => baseFilter === 'all' || r.base === baseFilter), [filteredSemBase, baseFilter]);
+
+  const filteredByPeriod = useMemo(() => filtered.filter(r => inPeriod(r, periodView, mesSel, lastReal)), [filtered, periodView, mesSel, lastReal]);
+  const filteredSemBaseByPeriod = useMemo(() => filteredSemBase.filter(r => inPeriod(r, periodView, mesSel, lastReal)), [filteredSemBase, periodView, mesSel, lastReal]);
+
+  // KPIs (use filteredByPeriod; orcAnual ignores period)
   const kpis = useMemo(() => {
     const orcAnual = filtered.filter(r => r.base === 'orc').reduce((s, r) => s + r.executado, 0);
-    let orcado = 0, realizado = 0;
-    if (periodView === 'ytd') {
-      const limite = lastReal || 12;
-      orcado = filtered.filter(r => r.base === 'orc' && r.mes_num <= limite).reduce((s, r) => s + r.executado, 0);
-      realizado = filtered.filter(r => r.base === 'real').reduce((s, r) => s + r.executado, 0);
-    } else {
-      orcado = filtered.filter(r => r.base === 'orc' && r.mes_num === mesSel).reduce((s, r) => s + r.executado, 0);
-      realizado = filtered.filter(r => r.base === 'real' && r.mes_num === mesSel).reduce((s, r) => s + r.executado, 0);
-    }
+    const orcado = filteredByPeriod.filter(r => r.base === 'orc').reduce((s, r) => s + r.executado, 0);
+    const realizado = filteredByPeriod.filter(r => r.base === 'real').reduce((s, r) => s + r.executado, 0);
     const exec = orcado !== 0 ? (realizado / orcado) * 100 : 0;
-    return { orcAnual, orcado, realizado, exec, saldo: orcAnual - filtered.filter(r => r.base === 'real').reduce((s, r) => s + r.executado, 0) };
-  }, [filtered, periodView, mesSel, lastReal]);
+    const realAnual = filtered.filter(r => r.base === 'real').reduce((s, r) => s + r.executado, 0);
+    return { orcAnual, orcado, realizado, exec, saldo: orcAnual - realAnual };
+  }, [filtered, filteredByPeriod]);
 
   const execColor = kpis.exec >= 80 && kpis.exec <= 110 ? 'text-success' : (kpis.exec >= 60 && kpis.exec < 80) || (kpis.exec > 110 && kpis.exec <= 130) ? 'text-warning' : 'text-destructive';
 
-  // Monthly chart
+  // Monthly chart respects baseFilter
   const monthly = useMemo(() => {
     return MESES_PT.map((nome, i) => {
       const m = i + 1;
-      const orc = filtered.filter(r => r.base === 'orc' && r.mes_num === m).reduce((s, r) => s + r.executado, 0);
-      const real = filtered.filter(r => r.base === 'real' && r.mes_num === m).reduce((s, r) => s + r.executado, 0);
-      return { mes: nome, orcado: orc, realizado: m <= lastReal ? real : null };
+      const orc = baseFilter === 'real' ? null : filtered.filter(r => r.base === 'orc' && r.mes_num === m).reduce((s, r) => s + r.executado, 0);
+      const realVal = baseFilter === 'orc' ? null : filtered.filter(r => r.base === 'real' && r.mes_num === m).reduce((s, r) => s + r.executado, 0);
+      return { mes: nome, orcado: orc, realizado: realVal != null && m <= lastReal ? realVal : null };
     });
-  }, [filtered, lastReal]);
+  }, [filtered, lastReal, baseFilter]);
 
-  // Project table
-  const projData = useMemo(() => {
-    const map = new Map<string, { nome: string; diretoria: string; sponsor: string; status: string; orcado: number; realizado: number }>();
-    for (const r of filtered) {
-      const k = r.nome_projeto || '(sem projeto)';
+  // Aggregations using filteredSemBaseByPeriod (always show both orc/real columns)
+  type AggRow = { chave: string; orcado: number; realizado: number; saldo: number; variacaoPercent: number; diretoria?: string; sponsor?: string; status?: string };
+
+  function aggregate(keyFn: (r: DBRow) => string, extra?: (r: DBRow, row: AggRow) => void): AggRow[] {
+    const map = new Map<string, AggRow>();
+    for (const r of filteredSemBaseByPeriod) {
+      const k = keyFn(r);
+      if (!k) continue;
       let row = map.get(k);
-      if (!row) { row = { nome: k, diretoria: r.diretoria || '', sponsor: r.sponsor_projeto || '', status: r.projeto_novo || '', orcado: 0, realizado: 0 }; map.set(k, row); }
+      if (!row) { row = { chave: k, orcado: 0, realizado: 0, saldo: 0, variacaoPercent: 0 }; map.set(k, row); }
+      if (extra) extra(r, row);
       if (r.base === 'orc') row.orcado += r.executado;
       else row.realizado += r.executado;
     }
-    return Array.from(map.values()).filter(d => d.orcado !== 0 || d.realizado !== 0).map(d => ({
-      ...d,
-      variacaoPercent: d.orcado !== 0 ? ((d.realizado - d.orcado) / d.orcado) * 100 : 0,
-      saldo: d.orcado - d.realizado,
-    })).sort((a, b) => b.orcado - a.orcado);
-  }, [filtered]);
+    return Array.from(map.values()).map(r => ({
+      ...r,
+      saldo: r.orcado - r.realizado,
+      variacaoPercent: r.orcado !== 0 ? ((r.realizado - r.orcado) / r.orcado) * 100 : 0,
+    })).filter(r => r.orcado !== 0 || r.realizado !== 0).sort((a, b) => b.orcado - a.orcado);
+  }
+
+  const dirData = useMemo(() => aggregate(r => r.diretoria || ''), [filteredSemBaseByPeriod]);
+  const pacData = useMemo(() => aggregate(r => (r.grupo_pacotes || '').trim()), [filteredSemBaseByPeriod]);
+  const projData = useMemo(() => aggregate(
+    r => r.nome_projeto || '',
+    (r, row) => { if (!row.diretoria) { row.diretoria = r.diretoria || ''; row.sponsor = r.sponsor_projeto || ''; row.status = r.projeto_novo || ''; } }
+  ), [filteredSemBaseByPeriod]);
 
   const projTotals = computeTotals(projData, ['orcado', 'realizado', 'saldo', 'variacaoPercent']);
+  const dirTotals = computeTotals(dirData, ['orcado', 'realizado', 'saldo', 'variacaoPercent']);
+  const pacTotals = computeTotals(pacData, ['orcado', 'realizado', 'saldo', 'variacaoPercent']);
 
   const projColumns: ColumnDef[] = [
-    { key: 'nome', label: 'Projeto', align: 'left' },
+    { key: 'chave', label: 'Projeto', align: 'left' },
     { key: 'diretoria', label: 'Diretoria', align: 'left' },
     { key: 'sponsor', label: 'Sponsor', align: 'left' },
     { key: 'status', label: 'Status', align: 'left' },
-    { key: 'orcado', label: 'Orçado 2026', align: 'right', format: 'currency' },
-    { key: 'realizado', label: 'Realizado YTD', align: 'right', format: 'currency' },
+    { key: 'orcado', label: 'Orçado', align: 'right', format: 'currency' },
+    { key: 'realizado', label: 'Realizado', align: 'right', format: 'currency' },
+    { key: 'variacaoPercent', label: '% Var', align: 'right', format: 'percent' },
+    { key: 'saldo', label: 'Saldo', align: 'right', format: 'currency' },
+  ];
+  const dirColumns: ColumnDef[] = [
+    { key: 'chave', label: 'Diretoria', align: 'left' },
+    { key: 'orcado', label: 'Orçado', align: 'right', format: 'currency' },
+    { key: 'realizado', label: 'Realizado', align: 'right', format: 'currency' },
+    { key: 'variacaoPercent', label: '% Var', align: 'right', format: 'percent' },
+    { key: 'saldo', label: 'Saldo', align: 'right', format: 'currency' },
+  ];
+  const pacColumns: ColumnDef[] = [
+    { key: 'chave', label: 'Pacote', align: 'left' },
+    { key: 'orcado', label: 'Orçado', align: 'right', format: 'currency' },
+    { key: 'realizado', label: 'Realizado', align: 'right', format: 'currency' },
     { key: 'variacaoPercent', label: '% Var', align: 'right', format: 'percent' },
     { key: 'saldo', label: 'Saldo', align: 'right', format: 'currency' },
   ];
@@ -203,6 +251,14 @@ export default function CapexPage() {
                 </button>
               ))}
             </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-muted-foreground">Base:</span>
+              {(['all', 'orc', 'real'] as BaseFilter[]).map(b => (
+                <button key={b} onClick={() => setBaseFilter(b)} className={`text-xs px-3 py-1 rounded-md ${baseFilter === b ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:bg-accent'}`}>
+                  {b === 'all' ? 'Ambos' : b === 'orc' ? 'Orçado' : 'Realizado'}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-wrap gap-3 items-center">
               <Selector label="Diretoria" value={diretoria} options={['Todas', ...allDir]} onChange={v => { setDiretoria(v); setArea('Todas'); }} />
               <Selector label="Área" value={area} options={['Todas', ...allArea]} onChange={setArea} />
@@ -232,23 +288,77 @@ export default function CapexPage() {
                   formatter={(v: any) => v == null ? '—' : formatCurrency(Number(v))}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="orcado" name="Orçado" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+                {periodView === 'mensal' && (
+                  <ReferenceLine x={MESES_PT[mesSel - 1]} stroke="hsl(var(--primary))" strokeDasharray="4 4" label={{ value: 'Selecionado', fontSize: 10, fill: 'hsl(var(--primary))', position: 'top' }} />
+                )}
+                <Line type="monotone" dataKey="orcado" name="Orçado" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
                 <Line type="monotone" dataKey="realizado" name="Realizado" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Project table */}
+          {/* View toggle + table */}
           <div className="glass-card p-4">
-            <h3 className="text-sm font-semibold mb-3">Resumo por Projeto ({projData.length})</h3>
-            <SortableTable
-              columns={projColumns}
-              data={projData}
-              totalsRow={projTotals}
-              exportFilename="capex-por-projeto.csv"
-              maxHeight="520px"
-            />
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <h3 className="text-sm font-semibold">
+                {viewMode === 'diretoria' ? `Resumo por Diretoria (${dirData.length})` : viewMode === 'pacote' ? `Resumo por Pacote (${pacData.length})` : `Resumo por Projeto (${projData.length})`}
+              </h3>
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs text-muted-foreground">Visão:</span>
+                {([
+                  { id: 'diretoria', label: 'Por Diretoria' },
+                  { id: 'projeto', label: 'Por Projeto' },
+                  { id: 'pacote', label: 'Por Pacote' },
+                ] as const).map(v => (
+                  <button
+                    key={v.id}
+                    onClick={() => setViewMode(v.id as ViewMode)}
+                    className={`text-xs px-3 py-1 rounded-md ${viewMode === v.id ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:bg-accent'}`}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {viewMode === 'diretoria' && (
+              <SortableTable
+                columns={dirColumns}
+                data={dirData}
+                totalsRow={dirTotals}
+                exportFilename="capex-por-diretoria.csv"
+                maxHeight="520px"
+                onRowClick={(row) => setDrill({ level: 'area', diretoria: row.chave })}
+              />
+            )}
+            {viewMode === 'projeto' && (
+              <SortableTable
+                columns={projColumns}
+                data={projData}
+                totalsRow={projTotals}
+                exportFilename="capex-por-projeto.csv"
+                maxHeight="520px"
+                onRowClick={(row) => setDrill({ level: 'centro_custo', projeto: row.chave })}
+              />
+            )}
+            {viewMode === 'pacote' && (
+              <SortableTable
+                columns={pacColumns}
+                data={pacData}
+                totalsRow={pacTotals}
+                exportFilename="capex-por-pacote.csv"
+                maxHeight="520px"
+                onRowClick={(row) => setDrill({ level: 'projeto', pacote: row.chave })}
+              />
+            )}
           </div>
+
+          {drill && (
+            <CapexDrillModal
+              rows={filteredSemBaseByPeriod}
+              drill={drill}
+              onDrillChange={setDrill}
+            />
+          )}
         </>
       )}
     </div>
