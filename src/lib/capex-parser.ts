@@ -12,7 +12,6 @@ export async function parseCapexFile(
   }
 
   onProgress?.(0, 100);
-  const buffer = await file.arrayBuffer();
 
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./capex-parser.worker.ts', import.meta.url), { type: 'module' });
@@ -33,6 +32,6 @@ export async function parseCapexFile(
       reject(new Error(error.message || 'Erro ao processar arquivo'));
     };
 
-    worker.postMessage({ buffer }, [buffer]);
+    worker.postMessage({ file });
   });
 }
