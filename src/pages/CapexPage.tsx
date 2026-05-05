@@ -281,8 +281,20 @@ export default function CapexPage() {
               ))}
             </div>
             <div className="flex flex-wrap gap-3 items-center">
-              <Selector label="Diretoria" value={diretoria} options={['Todas', ...allDir]} onChange={v => { setDiretoria(v); setArea('Todas'); }} />
-              <Selector label="Área" value={area} options={['Todas', ...allArea]} onChange={setArea} />
+              <Selector
+                label="Diretoria"
+                value={diretoria}
+                options={isDiretoria || isArea ? [session?.diretoria || ''] : ['Todas', ...allDir]}
+                onChange={v => { setDiretoria(v); setArea('Todas'); }}
+                disabled={isDiretoria || isArea}
+              />
+              <Selector
+                label="Área"
+                value={area}
+                options={isArea ? [session?.area || ''] : ['Todas', ...allArea]}
+                onChange={setArea}
+                disabled={isArea}
+              />
               <Selector label="Projeto" value={projeto} options={['Todos', ...allProj]} onChange={setProjeto} />
               <Selector label="Pacote" value={pacote} options={['Todos', ...allPac]} onChange={setPacote} />
             </div>
