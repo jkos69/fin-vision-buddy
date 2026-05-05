@@ -76,25 +76,23 @@ export async function parseCapexFile(
   const sheet = wb.Sheets[sheetName];
 
   // Truncar !ref para o último range com dados reais (Excel pode marcar 1M+ linhas).
+  // Usar Object.keys do sheet em vez de varrer o range declarado: o SheetJS só armazena
+  // chaves para células que existem de verdade (~60k chaves vs ~40M de células fantasma).
   const originalRef = sheet['!ref'];
   const decoded = XLSX.utils.decode_range(originalRef || 'A1:A1');
   let lastRowWithData = 3;
-  outer: for (let R = decoded.e.r; R >= decoded.s.r; R--) {
-    for (let C = decoded.s.c; C <= decoded.e.c; C++) {
-      const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
-      const cell = sheet[cellAddr];
-      if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
-        lastRowWithData = R;
-        break outer;
-      }
-    }
+  const lastColWithData = decoded.e.c;
+  for (const key of Object.keys(sheet)) {
+    if (key.startsWith('!')) continue;
+    const decodedCell = XLSX.utils.decode_cell(key);
+    if (decodedCell.r > lastRowWithData) lastRowWithData = decodedCell.r;
   }
   const newRef = XLSX.utils.encode_range({
     s: { r: 0, c: decoded.s.c },
-    e: { r: lastRowWithData, c: decoded.e.c }
+    e: { r: lastRowWithData, c: lastColWithData }
   });
   sheet['!ref'] = newRef;
-  console.log('[Capex Parser] Original !ref:', originalRef, '→ truncated to:', newRef);
+  console.log('[Capex Parser] Original !ref:', originalRef, '→ truncated to:', newRef, `(varreu ${Object.keys(sheet).length} chaves)`);
 
   const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { range: 3, defval: '' });
   console.log('[Capex Parser] Sheet:', sheetName, '| Total raw rows:', rows.length);
