@@ -8,6 +8,10 @@ type ProgressMessage = { type: 'progress'; current: number; total: number };
 type SuccessMessage = { type: 'success'; records: CapexRecord[] };
 type ErrorMessage = { type: 'error'; message: string };
 
+interface CellValue { row: number; col: number; value: unknown }
+
+type RowObject = Record<string, unknown>;
+
 function s(v: unknown): string {
   if (v === null || v === undefined) return '';
   return String(v).trim().substring(0, 300);
@@ -15,13 +19,13 @@ function s(v: unknown): string {
 
 function num(v: unknown): number {
   if (v === null || v === undefined || v === '') return 0;
-  if (typeof v === 'number') return isNaN(v) ? 0 : v;
+  if (typeof v === 'number') return Number.isNaN(v) ? 0 : v;
   let str = String(v).trim().replace(/[R$\s]/g, '');
   const lc = str.lastIndexOf(','), ld = str.lastIndexOf('.');
   if (lc > ld) str = str.replace(/\./g, '').replace(',', '.');
   else str = str.replace(/,/g, '');
   const n = parseFloat(str);
-  return isNaN(n) ? 0 : n;
+  return Number.isNaN(n) ? 0 : n;
 }
 
 function excelDateMonth(serial: number): number {
@@ -31,23 +35,20 @@ function excelDateMonth(serial: number): number {
   return date.getUTCMonth() + 1;
 }
 
-function findKey(row: Record<string, any>, target: string): string | null {
+function findKey(row: RowObject, target: string): string | null {
   const keys = Object.keys(row);
   if (keys.includes(target)) return target;
   const norm = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   const t = norm(target);
-  let found = keys.find(k => norm(k) === t);
-  if (found) return found;
-  found = keys.find(k => norm(k).includes(t));
-  return found || null;
+  return keys.find(k => norm(k) === t) || keys.find(k => norm(k).includes(t)) || null;
 }
 
-function get(row: Record<string, any>, target: string): any {
+function get(row: RowObject, target: string): unknown {
   const k = findKey(row, target);
   return k ? row[k] : undefined;
 }
 
-function parseMes(row: Record<string, any>): number {
+function parseMes(row: RowObject): number {
   const nMes = get(row, 'Nº MÊS');
   if (nMes !== undefined && nMes !== '') {
     const n = Math.round(num(nMes));
@@ -62,7 +63,7 @@ function parseMes(row: Record<string, any>): number {
     const str = String(mes).trim().toUpperCase();
     if (CAPEX_MES_MAP[str]) return CAPEX_MES_MAP[str];
     const parsed = new Date(str);
-    if (!isNaN(parsed.getTime())) return parsed.getMonth() + 1;
+    if (!Number.isNaN(parsed.getTime())) return parsed.getMonth() + 1;
   }
   return 0;
 }
@@ -71,58 +72,160 @@ function postProgress(current: number, total: number) {
   self.postMessage({ type: 'progress', current, total } satisfies ProgressMessage);
 }
 
+function decodeXml(value: string): string {
+  return value
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([\da-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)));
+}
+
+function attr(xml: string, name: string): string {
+  return decodeXml(xml.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1] || '');
+}
+
+function colIndex(ref: string): number {
+  const letters = ref.match(/^[A-Z]+/i)?.[0].toUpperCase() || 'A';
+  let n = 0;
+  for (const ch of letters) n = n * 26 + ch.charCodeAt(0) - 64;
+  return n - 1;
+}
+
+function rowNumber(ref: string): number {
+  return Number(ref.match(/\d+$/)?.[0] || 0);
+}
+
+function toNumberIfNumeric(value: string): unknown {
+  if (value === '') return '';
+  const n = Number(value);
+  return Number.isFinite(n) && /^-?\d+(\.\d+)?(?:e[+-]?\d+)?$/i.test(value) ? n : value;
+}
+
+function textFromRichXml(xml: string): string {
+  let out = '';
+  const re = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(xml))) out += decodeXml(match[1]);
+  return out;
+}
+
+function readZipText(zip: Record<string, Uint8Array>, path: string): string {
+  const entry = zip[path];
+  if (!entry) throw new Error(`Arquivo interno não encontrado: ${path}`);
+  return strFromU8(entry);
+}
+
+function normalizePath(base: string, target: string): string {
+  if (target.startsWith('/')) return target.replace(/^\//, '');
+  const stack = base.split('/').filter(Boolean);
+  for (const part of target.split('/')) {
+    if (!part || part === '.') continue;
+    if (part === '..') stack.pop();
+    else stack.push(part);
+  }
+  return stack.join('/');
+}
+
+function parseSharedStrings(zip: Record<string, Uint8Array>): string[] {
+  if (!zip['xl/sharedStrings.xml']) return [];
+  const xml = readZipText(zip, 'xl/sharedStrings.xml');
+  const items: string[] = [];
+  const re = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(xml))) items.push(textFromRichXml(match[1]));
+  return items;
+}
+
+function getWorksheetPath(zip: Record<string, Uint8Array>): { sheetName: string; sheetPath: string } {
+  const workbook = readZipText(zip, 'xl/workbook.xml');
+  const rels = readZipText(zip, 'xl/_rels/workbook.xml.rels');
+  const relationships = new Map<string, string>();
+  const relRe = /<Relationship\b([^>]*)\/?>(?:<\/Relationship>)?/g;
+  let rel: RegExpExecArray | null;
+  while ((rel = relRe.exec(rels))) relationships.set(attr(rel[1], 'Id'), attr(rel[1], 'Target'));
+
+  const sheets: Array<{ name: string; relId: string }> = [];
+  const sheetRe = /<sheet\b([^>]*)\/?>(?:<\/sheet>)?/g;
+  let sheet: RegExpExecArray | null;
+  while ((sheet = sheetRe.exec(workbook))) sheets.push({ name: attr(sheet[1], 'name'), relId: attr(sheet[1], 'r:id') });
+
+  const selected = sheets.find(s => s.name.toLowerCase().includes('base 2026')) || sheets[0];
+  if (!selected) throw new Error("Aba 'Base 2026' não encontrada na planilha");
+  const target = relationships.get(selected.relId);
+  if (!target) throw new Error(`Relação da aba '${selected.name}' não encontrada`);
+  return { sheetName: selected.name, sheetPath: normalizePath('xl', target) };
+}
+
+function parseSheetRows(sheetXml: string, sharedStrings: string[]): { originalRef: string; rows: RowObject[]; lastRow: number } {
+  const originalRef = attr(sheetXml.match(/<dimension\b([^>]*)\/>/)?.[1] || '', 'ref') || 'A1:A1';
+  const headers = new Map<number, string>();
+  const rowMap = new Map<number, RowObject>();
+  let lastRow = HEADER_ROW_NUMBER;
+  const cellRe = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+  let cell: RegExpExecArray | null;
+
+  while ((cell = cellRe.exec(sheetXml))) {
+    const attrs = cell[1];
+    const body = cell[2] || '';
+    const ref = attr(attrs, 'r');
+    if (!ref) continue;
+    const row = rowNumber(ref);
+    if (row < HEADER_ROW_NUMBER) continue;
+    const col = colIndex(ref);
+    const type = attr(attrs, 't');
+    const rawValue = body.match(/<v[^>]*>([\s\S]*?)<\/v>/)?.[1] || '';
+    let value: unknown = '';
+
+    if (type === 's') value = sharedStrings[Number(rawValue)] || '';
+    else if (type === 'inlineStr') value = textFromRichXml(body);
+    else if (type === 'str') value = decodeXml(rawValue);
+    else value = toNumberIfNumeric(decodeXml(rawValue));
+
+    if (value === '') continue;
+    if (row === HEADER_ROW_NUMBER) {
+      headers.set(col, s(value));
+      continue;
+    }
+
+    const header = headers.get(col);
+    if (!header) continue;
+    let rowObj = rowMap.get(row);
+    if (!rowObj) {
+      rowObj = {};
+      rowMap.set(row, rowObj);
+    }
+    rowObj[header] = value;
+    if (row > lastRow) lastRow = row;
+  }
+
+  const rows = [...rowMap.keys()].sort((a, b) => a - b).map(row => rowMap.get(row)!).filter(row => Object.keys(row).length > 0);
+  return { originalRef, rows, lastRow };
+}
+
 self.onmessage = async (event: MessageEvent<{ file: File }>) => {
   try {
     postProgress(0, 100);
     const buffer = await event.data.file.arrayBuffer();
     postProgress(0, 100);
 
-    const bookInfo = XLSX.read(buffer.slice(0), { type: 'array', bookSheets: true, bookProps: false });
-    const sheetName = bookInfo.SheetNames.find(n => n.toLowerCase().includes('base 2026')) || bookInfo.SheetNames[0];
-    if (!sheetName) throw new Error("Aba 'Base 2026' não encontrada na planilha");
+    const zip = unzipSync(new Uint8Array(buffer));
+    const { sheetName, sheetPath } = getWorksheetPath(zip);
+    const sharedStrings = parseSharedStrings(zip);
+    const sheetXml = readZipText(zip, sheetPath);
+    const { originalRef, rows, lastRow } = parseSheetRows(sheetXml, sharedStrings);
+    const truncatedRef = `A1:AL${lastRow}`;
 
-    const wb = XLSX.read(buffer, {
-      type: 'array',
-      sheets: sheetName,
-      sheetRows: 5000,
-      dense: true,
-      raw: true,
-      cellDates: false,
-      cellNF: false,
-      cellHTML: false,
-      cellStyles: false,
-      cellFormula: false,
-    });
-    const sheet = wb.Sheets[sheetName];
-
-    const originalRef = sheet['!ref'];
-    const decoded = XLSX.utils.decode_range(originalRef || 'A1:A1');
-    let lastRowWithData = HEADER_ROW_INDEX;
-    const denseRows = sheet as unknown as any[][];
-    for (let r = denseRows.length - 1; r >= HEADER_ROW_INDEX; r--) {
-      const row = denseRows[r];
-      if (Array.isArray(row) && row.some(cell => cell?.v !== undefined && cell.v !== null && cell.v !== '')) {
-        lastRowWithData = r;
-        break;
-      }
-    }
-    const newRef = XLSX.utils.encode_range({
-      s: { r: 0, c: decoded.s.c },
-      e: { r: lastRowWithData, c: decoded.e.c }
-    });
-    sheet['!ref'] = newRef;
-    console.log('[Capex Parser] Original !ref:', originalRef, '→ truncated to:', newRef, `(dense rows: ${denseRows.length})`);
-
-    const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { range: HEADER_ROW_INDEX, defval: '', raw: true, blankrows: false, dense: true, sheetStubs: false, skipHidden: true, header: undefined, cellDates: false, dateNF: undefined, WTF: false, FS: undefined, RS: undefined, strip: false } as any)
-      .map((row: Record<string, any>) => row)
-      .filter(Boolean);
+    console.log('[Capex Parser] Original !ref:', originalRef, '→ truncated to:', truncatedRef, `(xml cells: ${rows.length})`);
     console.log('[Capex Parser] Sheet:', sheetName, '| Total raw rows:', rows.length);
     if (rows[0]) console.log('[Capex Parser] Headers detected:', Object.keys(rows[0]));
 
     const records: CapexRecord[] = [];
     let descBase = 0, descExec = 0, descMes = 0;
     let processed = 0;
-    const reportEvery = 200;
+    const reportEvery = 100;
     const totalRows = rows.length;
 
     for (const row of rows) {
