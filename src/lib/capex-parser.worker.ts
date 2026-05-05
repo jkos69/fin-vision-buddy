@@ -2,6 +2,8 @@ import * as XLSX from 'xlsx';
 import { CAPEX_MES_MAP, type CapexRecord } from '@/types/capex';
 
 const MAX_RECORDS = 100000;
+const HEADER_ROW_INDEX = 3;
+const CAPEX_COLUMNS = ['A:Z', 'AB:AB', 'AD:AD', 'AF:AF', 'AL:AL'].join(',');
 
 type ProgressMessage = { type: 'progress'; current: number; total: number };
 type SuccessMessage = { type: 'success'; records: CapexRecord[] };
@@ -63,32 +65,36 @@ function postProgress(current: number, total: number) {
   self.postMessage({ type: 'progress', current, total } satisfies ProgressMessage);
 }
 
-self.onmessage = async (event: MessageEvent<{ buffer: ArrayBuffer }>) => {
+self.onmessage = async (event: MessageEvent<{ file: File }>) => {
   try {
     postProgress(0, 100);
-    const wb = XLSX.read(event.data.buffer, { type: 'array', cellDates: false });
+    const buffer = await event.data.file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array', cellDates: false, sheetRows: 5000, dense: true, cellNF: false, cellHTML: false, cellStyles: false });
     const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('base 2026')) || wb.SheetNames[0];
     if (!sheetName) throw new Error("Aba 'Base 2026' não encontrada na planilha");
     const sheet = wb.Sheets[sheetName];
 
     const originalRef = sheet['!ref'];
     const decoded = XLSX.utils.decode_range(originalRef || 'A1:A1');
-    let lastRowWithData = 3;
-    const lastColWithData = decoded.e.c;
-    const sheetKeys = Object.keys(sheet);
-    for (const key of sheetKeys) {
-      if (key.startsWith('!')) continue;
-      const decodedCell = XLSX.utils.decode_cell(key);
-      if (decodedCell.r > lastRowWithData) lastRowWithData = decodedCell.r;
+    let lastRowWithData = HEADER_ROW_INDEX;
+    const denseRows = sheet as unknown as any[][];
+    for (let r = denseRows.length - 1; r >= HEADER_ROW_INDEX; r--) {
+      const row = denseRows[r];
+      if (Array.isArray(row) && row.some(cell => cell?.v !== undefined && cell.v !== null && cell.v !== '')) {
+        lastRowWithData = r;
+        break;
+      }
     }
     const newRef = XLSX.utils.encode_range({
       s: { r: 0, c: decoded.s.c },
-      e: { r: lastRowWithData, c: lastColWithData }
+      e: { r: lastRowWithData, c: decoded.e.c }
     });
     sheet['!ref'] = newRef;
-    console.log('[Capex Parser] Original !ref:', originalRef, '→ truncated to:', newRef, `(varreu ${sheetKeys.length} chaves)`);
+    console.log('[Capex Parser] Original !ref:', originalRef, '→ truncated to:', newRef, `(dense rows: ${denseRows.length})`);
 
-    const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { range: 3, defval: '' });
+    const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { range: HEADER_ROW_INDEX, defval: '', raw: true, blankrows: false, dense: true, sheetStubs: false, skipHidden: true, header: undefined, cellDates: false, dateNF: undefined, WTF: false, FS: undefined, RS: undefined, strip: false } as any)
+      .map((row: Record<string, any>) => row)
+      .filter(Boolean);
     console.log('[Capex Parser] Sheet:', sheetName, '| Total raw rows:', rows.length);
     if (rows[0]) console.log('[Capex Parser] Headers detected:', Object.keys(rows[0]));
 
