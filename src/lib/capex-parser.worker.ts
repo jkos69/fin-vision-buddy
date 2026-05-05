@@ -3,7 +3,6 @@ import { CAPEX_MES_MAP, type CapexRecord } from '@/types/capex';
 
 const MAX_RECORDS = 100000;
 const HEADER_ROW_INDEX = 3;
-const CAPEX_COLUMNS = ['A:Z', 'AB:AB', 'AD:AD', 'AF:AF', 'AL:AL'].join(',');
 
 type ProgressMessage = { type: 'progress'; current: number; total: number };
 type SuccessMessage = { type: 'success'; records: CapexRecord[] };
@@ -69,9 +68,24 @@ self.onmessage = async (event: MessageEvent<{ file: File }>) => {
   try {
     postProgress(0, 100);
     const buffer = await event.data.file.arrayBuffer();
-    const wb = XLSX.read(buffer, { type: 'array', cellDates: false, sheetRows: 5000, dense: true, cellNF: false, cellHTML: false, cellStyles: false });
-    const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('base 2026')) || wb.SheetNames[0];
+    postProgress(0, 100);
+
+    const bookInfo = XLSX.read(buffer.slice(0), { type: 'array', bookSheets: true, bookProps: false });
+    const sheetName = bookInfo.SheetNames.find(n => n.toLowerCase().includes('base 2026')) || bookInfo.SheetNames[0];
     if (!sheetName) throw new Error("Aba 'Base 2026' não encontrada na planilha");
+
+    const wb = XLSX.read(buffer, {
+      type: 'array',
+      sheets: sheetName,
+      sheetRows: 5000,
+      dense: true,
+      raw: true,
+      cellDates: false,
+      cellNF: false,
+      cellHTML: false,
+      cellStyles: false,
+      cellFormula: false,
+    });
     const sheet = wb.Sheets[sheetName];
 
     const originalRef = sheet['!ref'];
