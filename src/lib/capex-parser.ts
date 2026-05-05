@@ -143,6 +143,11 @@ export async function parseCapexFile(
       desc_pedido: s(get(row, 'Desc Pedido')),
     });
     if (records.length > MAX_RECORDS) throw new Error(`Limite de ${MAX_RECORDS} registros excedido`);
+    processed++;
+    if (onProgress && (processed % reportEvery === 0 || processed === totalRows)) {
+      onProgress(processed, totalRows);
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
 
   console.log(`[Capex Parser] Aceitas: ${records.length} | Descartadas: base=${descBase}, exec=${descExec}, mes=${descMes}`);
