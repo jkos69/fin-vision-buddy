@@ -1,8 +1,8 @@
-import * as XLSX from 'xlsx';
+import { strFromU8, unzipSync } from 'fflate';
 import { CAPEX_MES_MAP, type CapexRecord } from '@/types/capex';
 
 const MAX_RECORDS = 100000;
-const HEADER_ROW_INDEX = 3;
+const HEADER_ROW_NUMBER = 4;
 
 type ProgressMessage = { type: 'progress'; current: number; total: number };
 type SuccessMessage = { type: 'success'; records: CapexRecord[] };
