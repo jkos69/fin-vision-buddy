@@ -15,6 +15,7 @@ import UploadPage from "./pages/UploadPage";
 import SGAPage from "./pages/SGAPage";
 import CentroCustoPage from "./pages/CentroCustoPage";
 import RecursoPage from "./pages/RecursoPage";
+import CapexPage from "./pages/CapexPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +37,7 @@ function AppRoutes() {
           <Route path="/centrocusto" element={<CentroCustoPage />} />
           <Route path="/recurso" element={<RecursoPage />} />
           <Route path="/sga" element={<SGAPage />} />
+          <Route path="/capex" element={<CapexPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
