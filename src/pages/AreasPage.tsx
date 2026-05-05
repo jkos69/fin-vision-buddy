@@ -295,25 +295,6 @@ export default function AreasPage() {
             </div>
           )}
 
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold mb-4">Top 5 Maiores Custos (por Recurso)</h3>
-            <SortableTable
-              columns={[
-                { key: '_rank', label: '#', align: 'center', sortable: false, render: (_, __, i) => <span className="text-primary font-bold">#{i!+1}</span> },
-                { key: 'nome', label: 'Recurso', align: 'left' },
-                { key: '_valor', label: 'Valor', align: 'right', format: 'currency', render: (_, row) => formatCurrency(row.realizado || row.orcado) },
-                { key: '_pct', label: '% Total', align: 'right', render: (_, row) => `${totalArea > 0 ? ((row.realizado || row.orcado) / totalArea * 100).toFixed(1) : 0}%` },
-                { key: 'orcado', label: orcLabel, align: 'right', format: 'currency' },
-                { key: 'realizado', label: realLabel, align: 'right', format: 'currency' },
-                { key: 'variacao', label: 'Variação', align: 'right', format: 'currency' },
-              ]}
-              data={top5}
-              highlightTop={5}
-              onRowClick={(row) => openDetail(row.nome, drillRecords)}
-              totalsRow={computeTotals(top5, ['orcado', 'realizado', 'variacao'])}
-            />
-          </div>
-
           <div>
             <div className="px-1 py-2"><h3 className="text-sm font-semibold">Detalhamento por Recurso</h3></div>
             <SortableTable
