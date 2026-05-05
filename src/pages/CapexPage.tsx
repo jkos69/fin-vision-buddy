@@ -407,11 +407,16 @@ function Kpi({ label, value, valueClass = '' }: { label: string; value: string; 
   );
 }
 
-function Selector({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
+function Selector({ label, value, options, onChange, disabled }: { label: string; value: string; options: string[]; onChange: (v: string) => void; disabled?: boolean }) {
   return (
     <label className="flex items-center gap-2 text-xs">
       <span className="text-muted-foreground">{label}:</span>
-      <select value={value} onChange={e => onChange(e.target.value)} className="bg-card border border-border rounded px-2 py-1 max-w-[180px]">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        disabled={disabled}
+        className="bg-card border border-border rounded px-2 py-1 max-w-[180px] disabled:opacity-60 disabled:cursor-not-allowed"
+      >
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </label>
