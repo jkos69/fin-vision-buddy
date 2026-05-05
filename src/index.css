@@ -1,114 +1,120 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* Light theme */
+  /* Light theme — DFL Brand */
   :root.light, .light {
-    --background: 0 0% 98%;
-    --foreground: 222 30% 12%;
+    --background: 220 33% 98%;
+    --foreground: 230 47% 29%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 30% 12%;
+    --card-foreground: 230 47% 29%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 30% 12%;
+    --popover-foreground: 230 47% 29%;
 
-    --primary: 175 70% 38%;
+    /* Azul Claro DFL — ação */
+    --primary: 191 100% 41%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 93%;
-    --secondary-foreground: 222 20% 30%;
+    /* Azul Marinho DFL — institucional */
+    --secondary: 230 47% 29%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 15% 95%;
-    --muted-foreground: 215 15% 45%;
+    --muted: 218 22% 95%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 220 15% 93%;
-    --accent-foreground: 222 30% 12%;
+    --accent: 218 22% 92%;
+    --accent-foreground: 230 47% 29%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 73% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 60% 36%;
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 10%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 175 70% 38%;
+    --border: 218 22% 92%;
+    --input: 218 22% 92%;
+    --ring: 191 100% 41%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
-    --sidebar-background: 220 15% 96%;
-    --sidebar-foreground: 222 20% 30%;
-    --sidebar-primary: 175 70% 38%;
+    --sidebar-background: 220 33% 97%;
+    --sidebar-foreground: 230 30% 30%;
+    --sidebar-primary: 191 100% 41%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 91%;
-    --sidebar-accent-foreground: 222 30% 12%;
-    --sidebar-border: 220 15% 88%;
-    --sidebar-ring: 175 70% 38%;
+    --sidebar-accent: 218 22% 92%;
+    --sidebar-accent-foreground: 230 47% 29%;
+    --sidebar-border: 218 22% 90%;
+    --sidebar-ring: 191 100% 41%;
 
-    --chart-orcado: 175 70% 38%;
-    --chart-realizado: 210 80% 50%;
-    --chart-variance-positive: 0 72% 50%;
-    --chart-variance-negative: 152 60% 36%;
+    --chart-orcado: 230 47% 29%;
+    --chart-realizado: 191 100% 41%;
+    --chart-variance-positive: 0 73% 50%;
+    --chart-variance-negative: 160 84% 39%;
+
+    --dfl-marine: 230 47% 29%;
+    --dfl-cyan: 191 100% 41%;
   }
 
-  /* Dark theme (default) */
+  /* Dark theme (default) — DFL Brand */
   :root.dark, .dark, :root:not(.light) {
-    --background: 222 30% 6%;
-    --foreground: 210 20% 90%;
+    --background: 226 61% 10%;
+    --foreground: 222 76% 95%;
 
-    --card: 220 25% 10%;
-    --card-foreground: 210 20% 90%;
+    --card: 226 54% 17%;
+    --card-foreground: 222 76% 95%;
 
-    --popover: 220 25% 10%;
-    --popover-foreground: 210 20% 90%;
+    --popover: 226 54% 17%;
+    --popover-foreground: 222 76% 95%;
 
-    --primary: 175 70% 45%;
-    --primary-foreground: 222 30% 6%;
+    --primary: 191 100% 41%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 16%;
-    --secondary-foreground: 210 20% 80%;
+    --secondary: 224 45% 22%;
+    --secondary-foreground: 222 76% 95%;
 
-    --muted: 220 20% 14%;
-    --muted-foreground: 215 15% 55%;
+    --muted: 224 45% 18%;
+    --muted-foreground: 222 27% 69%;
 
-    --accent: 220 20% 18%;
-    --accent-foreground: 210 20% 90%;
+    --accent: 224 45% 22%;
+    --accent-foreground: 222 76% 95%;
 
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 91% 71%;
+    --destructive-foreground: 0 0% 10%;
 
-    --success: 152 60% 42%;
-    --success-foreground: 0 0% 100%;
+    --success: 158 64% 52%;
+    --success-foreground: 0 0% 10%;
 
-    --warning: 38 92% 55%;
+    --warning: 43 96% 56%;
     --warning-foreground: 0 0% 10%;
 
-    --border: 220 20% 18%;
-    --input: 220 20% 18%;
-    --ring: 175 70% 45%;
+    --border: 224 45% 22%;
+    --input: 224 45% 22%;
+    --ring: 191 100% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
-    --sidebar-background: 222 30% 8%;
-    --sidebar-foreground: 210 20% 80%;
-    --sidebar-primary: 175 70% 45%;
-    --sidebar-primary-foreground: 222 30% 6%;
-    --sidebar-accent: 220 20% 14%;
-    --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 220 20% 16%;
-    --sidebar-ring: 175 70% 45%;
+    --sidebar-background: 226 61% 10%;
+    --sidebar-foreground: 222 27% 75%;
+    --sidebar-primary: 191 100% 41%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 226 54% 17%;
+    --sidebar-accent-foreground: 222 76% 95%;
+    --sidebar-border: 224 45% 22%;
+    --sidebar-ring: 191 100% 50%;
 
-    --chart-orcado: 175 70% 45%;
-    --chart-realizado: 210 80% 60%;
-    --chart-variance-positive: 0 72% 55%;
-    --chart-variance-negative: 152 60% 42%;
+    --chart-orcado: 222 76% 85%;
+    --chart-realizado: 191 100% 50%;
+    --chart-variance-positive: 0 91% 71%;
+    --chart-variance-negative: 158 64% 52%;
+
+    --dfl-marine: 230 47% 29%;
+    --dfl-cyan: 191 100% 50%;
   }
 }
 
@@ -117,80 +123,84 @@
     @apply border-border;
   }
 
+  html {
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Open Sans', system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
   }
 
   h1, h2, h3, h4, h5, h6 {
+    font-family: 'KoHo', system-ui, sans-serif;
     @apply font-semibold tracking-tight;
   }
 
-  .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+  .font-display {
+    font-family: 'KoHo', system-ui, sans-serif;
+  }
+
+  .font-mono, .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-lg;
+    @apply bg-card border border-border/60 rounded-2xl;
+    box-shadow: 0 1px 2px hsl(230 47% 10% / 0.04), 0 4px 16px hsl(230 47% 10% / 0.04);
+    transition: background-color 300ms ease, border-color 300ms ease;
   }
 
-  .light .glass-card {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  .dark .glass-card {
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.2), 0 4px 16px hsl(0 0% 0% / 0.15);
   }
 
   .glow-primary {
-    box-shadow: 0 0 20px -5px hsl(175 70% 45% / 0.2);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 6px 24px -8px hsl(var(--primary) / 0.35);
   }
 
-  .light .glow-primary {
-    box-shadow: 0 0 20px -5px hsl(175 70% 38% / 0.15);
-  }
+  .status-green { @apply text-success; }
+  .status-yellow { @apply text-warning; }
+  .status-red { @apply text-destructive; }
 
-  .status-green {
-    @apply text-success;
-  }
-
-  .status-yellow {
-    @apply text-warning;
-  }
-
-  .status-red {
-    @apply text-destructive;
-  }
-
-  .value-positive {
-    @apply text-destructive;
-  }
-
-  .value-negative {
-    @apply text-success;
-  }
+  .value-positive { @apply text-destructive; }
+  .value-negative { @apply text-success; }
 
   .data-grid {
-    @apply bg-card border border-border rounded-lg overflow-hidden;
+    @apply bg-card border border-border rounded-2xl overflow-hidden;
   }
 
   .nav-item {
-    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200;
+    @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150;
   }
 
   .nav-item-active {
-    @apply text-primary bg-primary/10 glow-primary;
+    @apply text-primary-foreground bg-primary;
+  }
+  .nav-item-active:hover {
+    @apply bg-primary text-primary-foreground;
+    filter: brightness(0.95);
+  }
+
+  /* DFL decorative shape */
+  .dfl-shape {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><path d='M100 10 Q170 30 190 100 T100 190 Q30 170 10 100 T100 10 Z' fill='%2300ACD1'/></svg>");
+    background-repeat: no-repeat;
+    background-position: top right;
+    background-size: 220px;
   }
 }
 
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
-  border-radius: 2px;
+  border-radius: 3px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+  background: hsl(var(--muted-foreground) / 0.5);
 }
