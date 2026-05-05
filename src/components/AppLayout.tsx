@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { BarChart3, Building, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2, Sun, Moon, PieChart, Boxes } from 'lucide-react';
+import { BarChart3, Building, Building2, Package, GitCompareArrows, Upload, Menu, X, Trash2, LogOut, Loader2, Sun, Moon, PieChart, Boxes, Factory } from 'lucide-react';
 import { useOPEX } from '@/contexts/OPEXContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMesesComReal } from '@/lib/opex-utils';
@@ -61,6 +61,7 @@ function SidebarContent() {
       )}
 
       <nav className="flex-1 space-y-1">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-3 pt-1 pb-1 font-semibold">OPEX</p>
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -71,6 +72,15 @@ function SidebarContent() {
             {label}
           </NavLink>
         ))}
+        {isCEO && (
+          <>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-3 pt-3 pb-1 font-semibold">CAPEX</p>
+            <NavLink to="/capex" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
+              <Factory className="h-4 w-4" />
+              Capex
+            </NavLink>
+          </>
+        )}
       </nav>
 
       <div className="space-y-3 border-t border-border pt-4 mt-4">
