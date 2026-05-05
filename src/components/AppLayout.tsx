@@ -72,19 +72,15 @@ function SidebarContent() {
             {label}
           </NavLink>
         ))}
-        {isCEO && (
-          <>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-3 pt-3 pb-1 font-semibold">CAPEX</p>
-            <NavLink to="/capex" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
-              <Factory className="h-4 w-4" />
-              Capex
-            </NavLink>
-            <NavLink to="/capex/centrocusto" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
-              <Building className="h-4 w-4" />
-              CC Capex
-            </NavLink>
-          </>
-        )}
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-3 pt-3 pb-1 font-semibold">CAPEX</p>
+        <NavLink to="/capex" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
+          <Factory className="h-4 w-4" />
+          Capex
+        </NavLink>
+        <NavLink to="/capex/centrocusto" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
+          <Building className="h-4 w-4" />
+          CC Capex
+        </NavLink>
       </nav>
 
       <div className="space-y-3 border-t border-border pt-4 mt-4">
