@@ -39,6 +39,28 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
   const sheetName = workbook.SheetNames.find(n => n.includes('Base Real') || n.includes('Orçado')) || workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   
+  // Truncar !ref para o último range com dados reais (preventivo).
+  const originalRef = sheet['!ref'];
+  if (originalRef) {
+    const decoded = XLSX.utils.decode_range(originalRef);
+    let lastRowWithData = 0;
+    for (let R = decoded.s.r; R <= decoded.e.r; R++) {
+      for (let C = decoded.s.c; C <= decoded.e.c; C++) {
+        const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = sheet[cellAddr];
+        if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
+          if (R > lastRowWithData) lastRowWithData = R;
+          break;
+        }
+      }
+    }
+    sheet['!ref'] = XLSX.utils.encode_range({
+      s: { r: 0, c: decoded.s.c },
+      e: { r: lastRowWithData, c: decoded.e.c }
+    });
+    console.log('[OPEX Parser] !ref:', originalRef, '→', sheet['!ref']);
+  }
+
   const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
   
   let headerIdx = 3;
