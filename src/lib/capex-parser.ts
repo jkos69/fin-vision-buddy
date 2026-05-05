@@ -58,21 +58,53 @@ function parseMes(row: Record<string, any>): number {
   return 0;
 }
 
-export async function parseCapexFile(file: File): Promise<CapexRecord[]> {
+export async function parseCapexFile(
+  file: File,
+  onProgress?: (current: number, total: number) => void
+): Promise<CapexRecord[]> {
   if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
     throw new Error(`Arquivo muito grande (máx ${MAX_FILE_SIZE_MB}MB).`);
+  }
+  if (onProgress) {
+    onProgress(0, 100);
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array', cellDates: false });
   const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('base 2026')) || wb.SheetNames[0];
   if (!sheetName) throw new Error("Aba 'Base 2026' não encontrada na planilha");
   const sheet = wb.Sheets[sheetName];
+
+  // Truncar !ref para o último range com dados reais (Excel pode marcar 1M+ linhas).
+  const originalRef = sheet['!ref'];
+  const decoded = XLSX.utils.decode_range(originalRef || 'A1:A1');
+  let lastRowWithData = 3;
+  for (let R = decoded.s.r; R <= decoded.e.r; R++) {
+    for (let C = decoded.s.c; C <= decoded.e.c; C++) {
+      const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = sheet[cellAddr];
+      if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
+        if (R > lastRowWithData) lastRowWithData = R;
+        break;
+      }
+    }
+  }
+  const newRef = XLSX.utils.encode_range({
+    s: { r: 0, c: decoded.s.c },
+    e: { r: lastRowWithData, c: decoded.e.c }
+  });
+  sheet['!ref'] = newRef;
+  console.log('[Capex Parser] Original !ref:', originalRef, '→ truncated to:', newRef);
+
   const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { range: 3, defval: '' });
   console.log('[Capex Parser] Sheet:', sheetName, '| Total raw rows:', rows.length);
   if (rows[0]) console.log('[Capex Parser] Headers detected:', Object.keys(rows[0]));
 
   const records: CapexRecord[] = [];
   let descBase = 0, descExec = 0, descMes = 0;
+  let processed = 0;
+  const reportEvery = 200;
+  const totalRows = rows.length;
 
   for (const row of rows) {
     const baseRaw = s(get(row, 'Base')).toLowerCase();
@@ -111,6 +143,11 @@ export async function parseCapexFile(file: File): Promise<CapexRecord[]> {
       desc_pedido: s(get(row, 'Desc Pedido')),
     });
     if (records.length > MAX_RECORDS) throw new Error(`Limite de ${MAX_RECORDS} registros excedido`);
+    processed++;
+    if (onProgress && (processed % reportEvery === 0 || processed === totalRows)) {
+      onProgress(processed, totalRows);
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
 
   console.log(`[Capex Parser] Aceitas: ${records.length} | Descartadas: base=${descBase}, exec=${descExec}, mes=${descMes}`);

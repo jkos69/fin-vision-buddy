@@ -23,10 +23,14 @@ export function CapexFileUpload({ onUploaded }: Props) {
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
       setStatus('error'); setMessage('Arquivo deve ser .xlsx ou .xls'); return;
     }
-    setStatus('parsing'); setMessage('Processando planilha...'); setFileName(file.name); setProgress(0);
+    setStatus('parsing'); setMessage('Lendo arquivo...'); setFileName(file.name); setProgress(0);
     try {
       localStorage.removeItem('capex-data');
-      const recs = await parseCapexFile(file);
+      const recs = await parseCapexFile(file, (current, total) => {
+        const pct = Math.round((current / total) * 100);
+        setProgress(pct);
+        setMessage(`Lendo planilha... ${current.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} linhas`);
+      });
       setRecords(recs);
       setStatus('validating');
       setMessage(`${recs.length.toLocaleString('pt-BR')} registros prontos para envio`);
