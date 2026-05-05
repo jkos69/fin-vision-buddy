@@ -16,6 +16,7 @@ import SGAPage from "./pages/SGAPage";
 import CentroCustoPage from "./pages/CentroCustoPage";
 import RecursoPage from "./pages/RecursoPage";
 import CapexPage from "./pages/CapexPage";
+import CapexCentroCustoPage from "./pages/CapexCentroCustoPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
