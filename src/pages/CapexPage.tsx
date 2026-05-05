@@ -101,23 +101,30 @@ export default function CapexPage() {
 
   useEffect(() => { reload(); }, []);
 
-  const mesesComReal = useMemo(() => [...new Set(rows.filter(r => r.base === 'real').map(r => r.mes_num))].sort((a, b) => a - b), [rows]);
+  const scopedRows = useMemo(() => {
+    if (isCEO) return rows;
+    if (isDiretoria && session?.diretoria) return rows.filter(r => r.diretoria === session.diretoria);
+    if (isArea && session?.area) return rows.filter(r => r.area === session.area);
+    return [];
+  }, [rows, isCEO, isDiretoria, isArea, session]);
+
+  const mesesComReal = useMemo(() => [...new Set(scopedRows.filter(r => r.base === 'real').map(r => r.mes_num))].sort((a, b) => a - b), [scopedRows]);
   const lastReal = mesesComReal[mesesComReal.length - 1] || 0;
 
-  const allDir = useMemo(() => [...new Set(rows.map(r => r.diretoria || '').filter(Boolean))].sort(), [rows]);
-  const allArea = useMemo(() => [...new Set(rows.filter(r => diretoria === 'Todas' || r.diretoria === diretoria).map(r => r.area || '').filter(Boolean))].sort(), [rows, diretoria]);
-  const allProj = useMemo(() => [...new Set(rows.map(r => r.nome_projeto || '').filter(Boolean))].sort(), [rows]);
-  const allPac = useMemo(() => [...new Set(rows.map(r => (r.grupo_pacotes || '').trim()).filter(Boolean))].sort(), [rows]);
+  const allDir = useMemo(() => [...new Set(scopedRows.map(r => r.diretoria || '').filter(Boolean))].sort(), [scopedRows]);
+  const allArea = useMemo(() => [...new Set(scopedRows.filter(r => diretoria === 'Todas' || r.diretoria === diretoria).map(r => r.area || '').filter(Boolean))].sort(), [scopedRows, diretoria]);
+  const allProj = useMemo(() => [...new Set(scopedRows.map(r => r.nome_projeto || '').filter(Boolean))].sort(), [scopedRows]);
+  const allPac = useMemo(() => [...new Set(scopedRows.map(r => (r.grupo_pacotes || '').trim()).filter(Boolean))].sort(), [scopedRows]);
 
   // filteredSemBase: applies all filters except baseFilter (used for tables that compare orc vs real)
-  const filteredSemBase = useMemo(() => rows.filter(r => {
+  const filteredSemBase = useMemo(() => scopedRows.filter(r => {
     if (tipoFilter !== 'all' && r.tipo !== tipoFilter) return false;
     if (diretoria !== 'Todas' && r.diretoria !== diretoria) return false;
     if (area !== 'Todas' && r.area !== area) return false;
     if (projeto !== 'Todos' && r.nome_projeto !== projeto) return false;
     if (pacote !== 'Todos' && (r.grupo_pacotes || '').trim() !== pacote) return false;
     return true;
-  }), [rows, tipoFilter, diretoria, area, projeto, pacote]);
+  }), [scopedRows, tipoFilter, diretoria, area, projeto, pacote]);
 
   const filtered = useMemo(() => filteredSemBase.filter(r => baseFilter === 'all' || r.base === baseFilter), [filteredSemBase, baseFilter]);
 
