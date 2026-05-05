@@ -24,6 +24,13 @@ function num(v: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
+function excelDateMonth(serial: number): number {
+  if (!Number.isFinite(serial)) return 0;
+  const utcDays = Math.floor(serial - 25569);
+  const date = new Date(utcDays * 86400 * 1000);
+  return date.getUTCMonth() + 1;
+}
+
 function findKey(row: Record<string, any>, target: string): string | null {
   const keys = Object.keys(row);
   if (keys.includes(target)) return target;
@@ -49,8 +56,8 @@ function parseMes(row: Record<string, any>): number {
   const mes = get(row, 'Mês');
   if (mes !== undefined && mes !== '') {
     if (typeof mes === 'number') {
-      const d = XLSX.SSF.parse_date_code(mes);
-      if (d && d.m >= 1 && d.m <= 12) return d.m;
+      const month = excelDateMonth(mes);
+      if (month >= 1 && month <= 12) return month;
     }
     const str = String(mes).trim().toUpperCase();
     if (CAPEX_MES_MAP[str]) return CAPEX_MES_MAP[str];
