@@ -39,6 +39,7 @@ function AppRoutes() {
           <Route path="/recurso" element={<RecursoPage />} />
           <Route path="/sga" element={<SGAPage />} />
           <Route path="/capex" element={<CapexPage />} />
+          <Route path="/capex/centrocusto" element={<CapexCentroCustoPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
