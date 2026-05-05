@@ -55,7 +55,7 @@ function inPeriod(r: DBRow, periodView: PeriodView, mesSel: number, lastReal: nu
 }
 
 export default function CapexPage() {
-  const { isCEO } = useAuth();
+  const { session, isCEO, isDiretoria, isArea } = useAuth();
   const [rows, setRows] = useState<DBRow[]>([]);
   const [uploadInfo, setUploadInfo] = useState<UploadInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,12 +66,16 @@ export default function CapexPage() {
   const [mesSel, setMesSel] = useState<number>(1);
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>('Capex');
   const [baseFilter, setBaseFilter] = useState<BaseFilter>('all');
-  const [diretoria, setDiretoria] = useState<string>('Todas');
-  const [area, setArea] = useState<string>('Todas');
+  const [diretoria, setDiretoria] = useState<string>(
+    isDiretoria || isArea ? (session?.diretoria || 'Todas') : 'Todas'
+  );
+  const [area, setArea] = useState<string>(
+    isArea ? (session?.area || 'Todas') : 'Todas'
+  );
   const [projeto, setProjeto] = useState<string>('Todos');
   const [pacote, setPacote] = useState<string>('Todos');
 
-  const [viewMode, setViewMode] = useState<ViewMode>('projeto');
+  const [viewMode, setViewMode] = useState<ViewMode>(isCEO ? 'diretoria' : 'projeto');
   const [drill, setDrill] = useState<DrillState | null>(null);
 
   const reload = async () => {
@@ -97,23 +101,30 @@ export default function CapexPage() {
 
   useEffect(() => { reload(); }, []);
 
-  const mesesComReal = useMemo(() => [...new Set(rows.filter(r => r.base === 'real').map(r => r.mes_num))].sort((a, b) => a - b), [rows]);
+  const scopedRows = useMemo(() => {
+    if (isCEO) return rows;
+    if (isDiretoria && session?.diretoria) return rows.filter(r => r.diretoria === session.diretoria);
+    if (isArea && session?.area) return rows.filter(r => r.area === session.area);
+    return [];
+  }, [rows, isCEO, isDiretoria, isArea, session]);
+
+  const mesesComReal = useMemo(() => [...new Set(scopedRows.filter(r => r.base === 'real').map(r => r.mes_num))].sort((a, b) => a - b), [scopedRows]);
   const lastReal = mesesComReal[mesesComReal.length - 1] || 0;
 
-  const allDir = useMemo(() => [...new Set(rows.map(r => r.diretoria || '').filter(Boolean))].sort(), [rows]);
-  const allArea = useMemo(() => [...new Set(rows.filter(r => diretoria === 'Todas' || r.diretoria === diretoria).map(r => r.area || '').filter(Boolean))].sort(), [rows, diretoria]);
-  const allProj = useMemo(() => [...new Set(rows.map(r => r.nome_projeto || '').filter(Boolean))].sort(), [rows]);
-  const allPac = useMemo(() => [...new Set(rows.map(r => (r.grupo_pacotes || '').trim()).filter(Boolean))].sort(), [rows]);
+  const allDir = useMemo(() => [...new Set(scopedRows.map(r => r.diretoria || '').filter(Boolean))].sort(), [scopedRows]);
+  const allArea = useMemo(() => [...new Set(scopedRows.filter(r => diretoria === 'Todas' || r.diretoria === diretoria).map(r => r.area || '').filter(Boolean))].sort(), [scopedRows, diretoria]);
+  const allProj = useMemo(() => [...new Set(scopedRows.map(r => r.nome_projeto || '').filter(Boolean))].sort(), [scopedRows]);
+  const allPac = useMemo(() => [...new Set(scopedRows.map(r => (r.grupo_pacotes || '').trim()).filter(Boolean))].sort(), [scopedRows]);
 
   // filteredSemBase: applies all filters except baseFilter (used for tables that compare orc vs real)
-  const filteredSemBase = useMemo(() => rows.filter(r => {
+  const filteredSemBase = useMemo(() => scopedRows.filter(r => {
     if (tipoFilter !== 'all' && r.tipo !== tipoFilter) return false;
     if (diretoria !== 'Todas' && r.diretoria !== diretoria) return false;
     if (area !== 'Todas' && r.area !== area) return false;
     if (projeto !== 'Todos' && r.nome_projeto !== projeto) return false;
     if (pacote !== 'Todos' && (r.grupo_pacotes || '').trim() !== pacote) return false;
     return true;
-  }), [rows, tipoFilter, diretoria, area, projeto, pacote]);
+  }), [scopedRows, tipoFilter, diretoria, area, projeto, pacote]);
 
   const filtered = useMemo(() => filteredSemBase.filter(r => baseFilter === 'all' || r.base === baseFilter), [filteredSemBase, baseFilter]);
 
@@ -199,7 +210,7 @@ export default function CapexPage() {
     { key: 'saldo', label: 'Saldo', align: 'right', format: 'currency' },
   ];
 
-  if (!isCEO) {
+  if (!isCEO && !isDiretoria && !isArea) {
     return <div className="glass-card p-8"><p className="text-muted-foreground">Acesso restrito.</p></div>;
   }
 
@@ -214,22 +225,32 @@ export default function CapexPage() {
             </p>
           )}
         </div>
-        <button onClick={() => setShowUpload(s => !s)} className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
-          <UploadIcon className="h-3.5 w-3.5" /> {showUpload ? 'Fechar' : 'Upload Planilha Capex'}
-        </button>
+        {isCEO && (
+          <button onClick={() => setShowUpload(s => !s)} className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
+            <UploadIcon className="h-3.5 w-3.5" /> {showUpload ? 'Fechar' : 'Upload Planilha Capex'}
+          </button>
+        )}
       </div>
 
-      {showUpload && <CapexFileUpload onUploaded={() => { setShowUpload(false); reload(); }} />}
+      {isCEO && showUpload && <CapexFileUpload onUploaded={() => { setShowUpload(false); reload(); }} />}
 
       {loading && <div className="glass-card p-8 text-center text-muted-foreground">Carregando...</div>}
 
       {!loading && rows.length === 0 && (
         <div className="glass-card p-8 text-center text-muted-foreground">
-          Nenhum dado de Capex importado ainda. Clique em "Upload Planilha Capex" para começar.
+          {isCEO
+            ? 'Nenhum dado de Capex importado ainda. Clique em "Upload Planilha Capex" para começar.'
+            : 'Nenhum dado de Capex disponível ainda.'}
         </div>
       )}
 
-      {!loading && rows.length > 0 && (
+      {!loading && rows.length > 0 && scopedRows.length === 0 && (
+        <div className="glass-card p-8 text-center text-muted-foreground">
+          Nenhum dado de Capex para {isArea ? `a área "${session?.area}"` : `a diretoria "${session?.diretoria}"`}.
+        </div>
+      )}
+
+      {!loading && scopedRows.length > 0 && (
         <>
           {/* Filters */}
           <div className="glass-card p-4 space-y-3">
@@ -260,8 +281,20 @@ export default function CapexPage() {
               ))}
             </div>
             <div className="flex flex-wrap gap-3 items-center">
-              <Selector label="Diretoria" value={diretoria} options={['Todas', ...allDir]} onChange={v => { setDiretoria(v); setArea('Todas'); }} />
-              <Selector label="Área" value={area} options={['Todas', ...allArea]} onChange={setArea} />
+              <Selector
+                label="Diretoria"
+                value={diretoria}
+                options={isDiretoria || isArea ? [session?.diretoria || ''] : ['Todas', ...allDir]}
+                onChange={v => { setDiretoria(v); setArea('Todas'); }}
+                disabled={isDiretoria || isArea}
+              />
+              <Selector
+                label="Área"
+                value={area}
+                options={isArea ? [session?.area || ''] : ['Todas', ...allArea]}
+                onChange={setArea}
+                disabled={isArea}
+              />
               <Selector label="Projeto" value={projeto} options={['Todos', ...allProj]} onChange={setProjeto} />
               <Selector label="Pacote" value={pacote} options={['Todos', ...allPac]} onChange={setPacote} />
             </div>
@@ -306,10 +339,10 @@ export default function CapexPage() {
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-xs text-muted-foreground">Visão:</span>
                 {([
-                  { id: 'diretoria', label: 'Por Diretoria' },
-                  { id: 'projeto', label: 'Por Projeto' },
-                  { id: 'pacote', label: 'Por Pacote' },
-                ] as const).map(v => (
+                  { id: 'diretoria' as const, label: 'Por Diretoria', show: isCEO },
+                  { id: 'projeto' as const, label: 'Por Projeto', show: true },
+                  { id: 'pacote' as const, label: 'Por Pacote', show: true },
+                ]).filter(v => v.show).map(v => (
                   <button
                     key={v.id}
                     onClick={() => setViewMode(v.id as ViewMode)}
@@ -374,11 +407,16 @@ function Kpi({ label, value, valueClass = '' }: { label: string; value: string; 
   );
 }
 
-function Selector({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
+function Selector({ label, value, options, onChange, disabled }: { label: string; value: string; options: string[]; onChange: (v: string) => void; disabled?: boolean }) {
   return (
     <label className="flex items-center gap-2 text-xs">
       <span className="text-muted-foreground">{label}:</span>
-      <select value={value} onChange={e => onChange(e.target.value)} className="bg-card border border-border rounded px-2 py-1 max-w-[180px]">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        disabled={disabled}
+        className="bg-card border border-border rounded px-2 py-1 max-w-[180px] disabled:opacity-60 disabled:cursor-not-allowed"
+      >
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </label>
