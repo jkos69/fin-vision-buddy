@@ -80,6 +80,140 @@ export type Database = {
         }
         Relationships: []
       }
+      capex_records: {
+        Row: {
+          area: string | null
+          base: string
+          centro_custo: string | null
+          cod_fornecedor: string | null
+          conta_contabil: string | null
+          created_at: string
+          data_lancamento: string | null
+          desc_centro_custo: string | null
+          desc_conta_contabil: string | null
+          desc_pedido: string | null
+          diretoria: string | null
+          executado: number
+          grupo_contas_1: string | null
+          grupo_contas_2: string | null
+          grupo_pacotes: string | null
+          historico: string | null
+          id: string
+          item_contabil: string | null
+          mes_num: number
+          nf_numero: string | null
+          nome_fantasia: string | null
+          nome_projeto: string | null
+          pedido_numero: string | null
+          projeto_novo: string | null
+          razao_social: string | null
+          responsavel_area: string | null
+          sponsor_projeto: string | null
+          tipo: string | null
+          upload_id: string | null
+        }
+        Insert: {
+          area?: string | null
+          base: string
+          centro_custo?: string | null
+          cod_fornecedor?: string | null
+          conta_contabil?: string | null
+          created_at?: string
+          data_lancamento?: string | null
+          desc_centro_custo?: string | null
+          desc_conta_contabil?: string | null
+          desc_pedido?: string | null
+          diretoria?: string | null
+          executado?: number
+          grupo_contas_1?: string | null
+          grupo_contas_2?: string | null
+          grupo_pacotes?: string | null
+          historico?: string | null
+          id?: string
+          item_contabil?: string | null
+          mes_num: number
+          nf_numero?: string | null
+          nome_fantasia?: string | null
+          nome_projeto?: string | null
+          pedido_numero?: string | null
+          projeto_novo?: string | null
+          razao_social?: string | null
+          responsavel_area?: string | null
+          sponsor_projeto?: string | null
+          tipo?: string | null
+          upload_id?: string | null
+        }
+        Update: {
+          area?: string | null
+          base?: string
+          centro_custo?: string | null
+          cod_fornecedor?: string | null
+          conta_contabil?: string | null
+          created_at?: string
+          data_lancamento?: string | null
+          desc_centro_custo?: string | null
+          desc_conta_contabil?: string | null
+          desc_pedido?: string | null
+          diretoria?: string | null
+          executado?: number
+          grupo_contas_1?: string | null
+          grupo_contas_2?: string | null
+          grupo_pacotes?: string | null
+          historico?: string | null
+          id?: string
+          item_contabil?: string | null
+          mes_num?: number
+          nf_numero?: string | null
+          nome_fantasia?: string | null
+          nome_projeto?: string | null
+          pedido_numero?: string | null
+          projeto_novo?: string | null
+          razao_social?: string | null
+          responsavel_area?: string | null
+          sponsor_projeto?: string | null
+          tipo?: string | null
+          upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capex_records_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "capex_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capex_uploads: {
+        Row: {
+          file_name: string
+          id: string
+          record_count: number
+          total_orcado: number
+          total_realizado: number
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_name: string
+          id?: string
+          record_count?: number
+          total_orcado?: number
+          total_realizado?: number
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_name?: string
+          id?: string
+          record_count?: number
+          total_orcado?: number
+          total_realizado?: number
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       opex_records: {
         Row: {
           agrupamento: string | null
@@ -216,6 +350,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_capex_data: { Args: { p_session_token: string }; Returns: boolean }
       clear_opex_data: { Args: { p_session_token: string }; Returns: boolean }
       create_session: {
         Args: { input_senha: string }
@@ -229,6 +364,15 @@ export type Database = {
         }[]
       }
       destroy_session: { Args: { p_session_token: string }; Returns: boolean }
+      insert_capex_batch: {
+        Args: {
+          p_file_name: string
+          p_records: Json
+          p_session_token: string
+          p_uploaded_by: string
+        }
+        Returns: Json
+      }
       insert_opex_batch: {
         Args: { p_records: Json; p_session_token: string }
         Returns: number
