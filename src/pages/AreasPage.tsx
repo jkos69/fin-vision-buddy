@@ -70,8 +70,6 @@ export default function AreasPage() {
   const drillRecords = selectedArea ? areaRecords.filter(r => r.areaGrupo1 === selectedArea) : [];
   const pacoteData = selectedArea ? groupBy(drillRecords, 'pacote', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
   const recursoData = selectedArea && !selectedCC ? groupBy(drillRecords, 'recurso', mesesComReal, periodoView, mesSelecionado).filter(d => d.orcado !== 0 || d.realizado !== 0) : [];
-  const top5 = recursoData.slice(0, 5);
-  const totalArea = recursoData.reduce((s, r) => s + (r.realizado || r.orcado), 0);
 
   // Centro de Custo data
   const ccData = selectedArea ? (() => {
