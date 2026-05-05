@@ -16,6 +16,7 @@ import SGAPage from "./pages/SGAPage";
 import CentroCustoPage from "./pages/CentroCustoPage";
 import RecursoPage from "./pages/RecursoPage";
 import CapexPage from "./pages/CapexPage";
+import CapexCentroCustoPage from "./pages/CapexCentroCustoPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ function AppRoutes() {
           <Route path="/recurso" element={<RecursoPage />} />
           <Route path="/sga" element={<SGAPage />} />
           <Route path="/capex" element={<CapexPage />} />
+          <Route path="/capex/centrocusto" element={<CapexCentroCustoPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

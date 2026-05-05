@@ -79,6 +79,10 @@ function SidebarContent() {
               <Factory className="h-4 w-4" />
               Capex
             </NavLink>
+            <NavLink to="/capex/centrocusto" className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}>
+              <Building className="h-4 w-4" />
+              CC Capex
+            </NavLink>
           </>
         )}
       </nav>
