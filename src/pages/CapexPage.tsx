@@ -210,7 +210,7 @@ export default function CapexPage() {
     { key: 'saldo', label: 'Saldo', align: 'right', format: 'currency' },
   ];
 
-  if (!isCEO) {
+  if (!isCEO && !isDiretoria && !isArea) {
     return <div className="glass-card p-8"><p className="text-muted-foreground">Acesso restrito.</p></div>;
   }
 
@@ -225,22 +225,32 @@ export default function CapexPage() {
             </p>
           )}
         </div>
-        <button onClick={() => setShowUpload(s => !s)} className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
-          <UploadIcon className="h-3.5 w-3.5" /> {showUpload ? 'Fechar' : 'Upload Planilha Capex'}
-        </button>
+        {isCEO && (
+          <button onClick={() => setShowUpload(s => !s)} className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
+            <UploadIcon className="h-3.5 w-3.5" /> {showUpload ? 'Fechar' : 'Upload Planilha Capex'}
+          </button>
+        )}
       </div>
 
-      {showUpload && <CapexFileUpload onUploaded={() => { setShowUpload(false); reload(); }} />}
+      {isCEO && showUpload && <CapexFileUpload onUploaded={() => { setShowUpload(false); reload(); }} />}
 
       {loading && <div className="glass-card p-8 text-center text-muted-foreground">Carregando...</div>}
 
       {!loading && rows.length === 0 && (
         <div className="glass-card p-8 text-center text-muted-foreground">
-          Nenhum dado de Capex importado ainda. Clique em "Upload Planilha Capex" para começar.
+          {isCEO
+            ? 'Nenhum dado de Capex importado ainda. Clique em "Upload Planilha Capex" para começar.'
+            : 'Nenhum dado de Capex disponível ainda.'}
         </div>
       )}
 
-      {!loading && rows.length > 0 && (
+      {!loading && rows.length > 0 && scopedRows.length === 0 && (
+        <div className="glass-card p-8 text-center text-muted-foreground">
+          Nenhum dado de Capex para {isArea ? `a área "${session?.area}"` : `a diretoria "${session?.diretoria}"`}.
+        </div>
+      )}
+
+      {!loading && scopedRows.length > 0 && (
         <>
           {/* Filters */}
           <div className="glass-card p-4 space-y-3">
