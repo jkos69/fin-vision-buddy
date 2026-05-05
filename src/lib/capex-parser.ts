@@ -79,13 +79,13 @@ export async function parseCapexFile(
   const originalRef = sheet['!ref'];
   const decoded = XLSX.utils.decode_range(originalRef || 'A1:A1');
   let lastRowWithData = 3;
-  for (let R = decoded.s.r; R <= decoded.e.r; R++) {
+  outer: for (let R = decoded.e.r; R >= decoded.s.r; R--) {
     for (let C = decoded.s.c; C <= decoded.e.c; C++) {
       const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
       const cell = sheet[cellAddr];
       if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
-        if (R > lastRowWithData) lastRowWithData = R;
-        break;
+        lastRowWithData = R;
+        break outer;
       }
     }
   }
@@ -107,6 +107,11 @@ export async function parseCapexFile(
   const totalRows = rows.length;
 
   for (const row of rows) {
+    processed++;
+    if (onProgress && (processed % reportEvery === 0 || processed === totalRows)) {
+      onProgress(processed, totalRows);
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
     const baseRaw = s(get(row, 'Base')).toLowerCase();
     if (baseRaw !== 'orc' && baseRaw !== 'real') { descBase++; continue; }
     const executado = num(get(row, 'EXECUTADO'));
@@ -143,11 +148,6 @@ export async function parseCapexFile(
       desc_pedido: s(get(row, 'Desc Pedido')),
     });
     if (records.length > MAX_RECORDS) throw new Error(`Limite de ${MAX_RECORDS} registros excedido`);
-    processed++;
-    if (onProgress && (processed % reportEvery === 0 || processed === totalRows)) {
-      onProgress(processed, totalRows);
-      await new Promise(resolve => setTimeout(resolve, 0));
-    }
   }
 
   console.log(`[Capex Parser] Aceitas: ${records.length} | Descartadas: base=${descBase}, exec=${descExec}, mes=${descMes}`);

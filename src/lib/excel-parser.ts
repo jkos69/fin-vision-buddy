@@ -44,13 +44,13 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
   if (originalRef) {
     const decoded = XLSX.utils.decode_range(originalRef);
     let lastRowWithData = 0;
-    for (let R = decoded.s.r; R <= decoded.e.r; R++) {
+    outer: for (let R = decoded.e.r; R >= decoded.s.r; R--) {
       for (let C = decoded.s.c; C <= decoded.e.c; C++) {
         const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
         const cell = sheet[cellAddr];
         if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
-          if (R > lastRowWithData) lastRowWithData = R;
-          break;
+          lastRowWithData = R;
+          break outer;
         }
       }
     }
