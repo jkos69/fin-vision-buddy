@@ -55,7 +55,7 @@ function inPeriod(r: DBRow, periodView: PeriodView, mesSel: number, lastReal: nu
 }
 
 export default function CapexPage() {
-  const { isCEO } = useAuth();
+  const { session, isCEO, isDiretoria, isArea } = useAuth();
   const [rows, setRows] = useState<DBRow[]>([]);
   const [uploadInfo, setUploadInfo] = useState<UploadInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,12 +66,16 @@ export default function CapexPage() {
   const [mesSel, setMesSel] = useState<number>(1);
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>('Capex');
   const [baseFilter, setBaseFilter] = useState<BaseFilter>('all');
-  const [diretoria, setDiretoria] = useState<string>('Todas');
-  const [area, setArea] = useState<string>('Todas');
+  const [diretoria, setDiretoria] = useState<string>(
+    isDiretoria || isArea ? (session?.diretoria || 'Todas') : 'Todas'
+  );
+  const [area, setArea] = useState<string>(
+    isArea ? (session?.area || 'Todas') : 'Todas'
+  );
   const [projeto, setProjeto] = useState<string>('Todos');
   const [pacote, setPacote] = useState<string>('Todos');
 
-  const [viewMode, setViewMode] = useState<ViewMode>('projeto');
+  const [viewMode, setViewMode] = useState<ViewMode>(isCEO ? 'diretoria' : 'projeto');
   const [drill, setDrill] = useState<DrillState | null>(null);
 
   const reload = async () => {
