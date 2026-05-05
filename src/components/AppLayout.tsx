@@ -35,15 +35,19 @@ function SidebarContent() {
   return (
     <>
       <div className="mb-6 px-2">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">
-          <span className="text-primary">OPEX</span> Control
+        <h1 className="text-xl font-display font-bold text-foreground tracking-tight">
+          <span className="text-primary">DFL</span> <span className="text-secondary dark:text-foreground">fin-vision</span>
         </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Controle Orçamentário 2026</p>
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">Controle OPEX 2026</p>
         {session && (
-          <>
-            <p className="text-xs text-primary/80 mt-1 truncate">Olá, {session.nomeDisplay}</p>
-            {contextLabel && <p className="text-[10px] text-muted-foreground truncate">{contextLabel}</p>}
-          </>
+          <div className="mt-3 flex flex-col gap-1">
+            <p className="text-xs text-foreground truncate">Olá, <span className="font-medium">{session.nomeDisplay}</span></p>
+            {contextLabel && (
+              <span className="inline-flex w-fit items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                {contextLabel}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
