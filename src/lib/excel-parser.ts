@@ -44,21 +44,17 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
   if (originalRef) {
     const decoded = XLSX.utils.decode_range(originalRef);
     let lastRowWithData = 0;
-    outer: for (let R = decoded.e.r; R >= decoded.s.r; R--) {
-      for (let C = decoded.s.c; C <= decoded.e.c; C++) {
-        const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
-        const cell = sheet[cellAddr];
-        if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
-          lastRowWithData = R;
-          break outer;
-        }
-      }
+    const lastColWithData = decoded.e.c;
+    for (const key of Object.keys(sheet)) {
+      if (key.startsWith('!')) continue;
+      const decodedCell = XLSX.utils.decode_cell(key);
+      if (decodedCell.r > lastRowWithData) lastRowWithData = decodedCell.r;
     }
     sheet['!ref'] = XLSX.utils.encode_range({
       s: { r: 0, c: decoded.s.c },
-      e: { r: lastRowWithData, c: decoded.e.c }
+      e: { r: lastRowWithData, c: lastColWithData }
     });
-    console.log('[OPEX Parser] !ref:', originalRef, '→', sheet['!ref']);
+    console.log('[OPEX Parser] !ref:', originalRef, '→', sheet['!ref'], `(varreu ${Object.keys(sheet).length} chaves)`);
   }
 
   const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
