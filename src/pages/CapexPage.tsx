@@ -339,10 +339,10 @@ export default function CapexPage() {
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-xs text-muted-foreground">Visão:</span>
                 {([
-                  { id: 'diretoria', label: 'Por Diretoria' },
-                  { id: 'projeto', label: 'Por Projeto' },
-                  { id: 'pacote', label: 'Por Pacote' },
-                ] as const).map(v => (
+                  { id: 'diretoria' as const, label: 'Por Diretoria', show: isCEO },
+                  { id: 'projeto' as const, label: 'Por Projeto', show: true },
+                  { id: 'pacote' as const, label: 'Por Pacote', show: true },
+                ]).filter(v => v.show).map(v => (
                   <button
                     key={v.id}
                     onClick={() => setViewMode(v.id as ViewMode)}
