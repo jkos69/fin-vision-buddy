@@ -26,17 +26,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative">
-      <button onClick={toggleTheme} className="absolute top-4 right-4 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-secondary via-background to-background relative overflow-hidden">
+      <svg className="absolute -bottom-32 -right-32 w-[600px] h-[600px] opacity-[0.06] dark:opacity-[0.1] text-primary pointer-events-none" viewBox="0 0 200 200" fill="currentColor" aria-hidden>
+        <path d="M100 10 Q170 30 190 100 T100 190 Q30 170 10 100 T100 10 Z" />
+      </svg>
+
+      <button onClick={toggleTheme} className="absolute top-4 right-4 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors z-10">
         {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       </button>
 
-      <div className="glass-card p-8 w-full max-w-sm space-y-6">
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">
-            <span className="text-primary">OPEX</span> Control
+      <div className="glass-card p-10 w-full max-w-sm space-y-6 relative z-10 rounded-3xl">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-display font-bold tracking-tight">
+            <span className="text-secondary dark:text-foreground">DFL</span> <span className="text-primary">fin-vision</span>
           </h1>
-          <p className="text-xs text-muted-foreground">Controle Orçamentário 2026</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest">Controle Orçamentário 2026</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
