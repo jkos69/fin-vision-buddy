@@ -84,7 +84,7 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
 
     if (!isOrc && !isReal) continue;
 
-    const executado = parseNumber(row[15]);
+    const executado = parseNumber(row[40]) || parseNumber(row[15]);
     
     const mesRaw = row[16];
     let mes: number;
