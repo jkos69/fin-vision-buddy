@@ -84,7 +84,10 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
 
     if (!isOrc && !isReal) continue;
 
-    const executado = parseNumber(row[40]) || parseNumber(row[15]);
+    const rawDebito = parseNumber(row[38]);
+    const rawCredito = parseNumber(row[39]);
+    const rawExecutado = rawDebito - rawCredito;
+    const executado = rawExecutado !== 0 ? rawExecutado : parseNumber(row[15]);
     
     const mesRaw = row[16];
     let mes: number;
@@ -108,8 +111,8 @@ export async function parseExcelFile(file: File): Promise<OPEXRecord[]> {
       decisao: sanitizeString(row[48]) || 'N/A',
       recurso: sanitizeString(row[11]),
       pacote: sanitizeString(row[12]),
-      debito: parseNumber(row[38]) || parseNumber(row[13]),
-      credito: parseNumber(row[39]) || parseNumber(row[14]),
+      debito: rawDebito !== 0 ? rawDebito : parseNumber(row[13]),
+      credito: rawCredito !== 0 ? rawCredito : parseNumber(row[14]),
       executado,
       mes,
       dataLcto: sanitizeString(row[17]),
